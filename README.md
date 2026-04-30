@@ -1,12 +1,12 @@
 # JhefDammys
 
-Sistema interno para gestao de eventos, clientes, orcamentos, custos, estoque e lucro.
+Sistema interno para organizar clientes, orcamentos, eventos, custos, estoque e lucro.
 
-## Sobre o projeto
+## O que e este projeto
 
-O JhefDammys nasceu para organizar a operacao de um negocio de eventos e buffet que hoje depende muito de conversas no Instagram, WhatsApp, anotacoes no papel e calculos feitos manualmente.
+O JhefDammys esta sendo construido para resolver um problema bem real de operacao: hoje boa parte do atendimento e do controle do negocio acontece entre Instagram, WhatsApp, anotacoes no papel e memoria.
 
-A ideia do sistema e centralizar o que mais pesa no dia a dia:
+A ideia do sistema e juntar tudo isso em um lugar so e facilitar principalmente:
 
 - agenda de eventos
 - cadastro de clientes
@@ -15,17 +15,17 @@ A ideia do sistema e centralizar o que mais pesa no dia a dia:
 - acompanhamento do lucro
 - estoque e compras
 
-O foco da primeira fase e resolver a operacao interna. A parte publica para clientes, consulta de datas e contrato automatico fica para uma etapa futura.
+Nesta primeira fase, o foco esta totalmente na parte interna do negocio. A area publica para cliente, consulta de datas e contrato automatico fica para depois.
 
 ## Objetivo da primeira versao
 
-Esta primeira versao do projeto foi pensada para:
+O objetivo desta versao inicial e simples:
 
 - parar de depender de papel e memoria
-- organizar os pedidos em um fluxo mais claro
-- saber quanto realmente foi gasto em cada evento
+- organizar melhor os pedidos
+- saber quanto foi gasto em cada evento
 - entender o lucro real de cada servico
-- evitar confusao com datas e agenda
+- reduzir confusao com datas e agenda
 
 ## Tecnologias usadas
 
@@ -51,17 +51,17 @@ JhefDammys/
   docs/
 ```
 
-- `frontend`: interface administrativa do sistema
+- `frontend`: interface administrativa
 - `backend`: API e regras de negocio
 - `docs`: documentos auxiliares do projeto
 
-## Funcionalidades ja iniciadas
+## O que ja esta funcionando
 
-Atualmente o projeto ja tem uma base funcional para:
+Hoje o projeto ja tem uma base funcional para:
 
 - dashboard administrativa
-- modulo de clientes
-- modulo inicial de orcamentos
+- fluxo de clientes
+- base inicial do fluxo de orcamentos
 - banco PostgreSQL configurado
 - migrations com Prisma
 
@@ -84,88 +84,167 @@ Ja existe a base para:
 - buscar orcamentos
 - relacionar o orcamento com um cliente
 
-## Status atual
-
-O projeto esta em desenvolvimento.
-
-Hoje a base tecnica esta pronta e os primeiros fluxos reais ja comecaram a funcionar. O foco agora e evoluir o modulo de orcamentos, depois servicos/cardapio, eventos e agenda.
-
 ## Como rodar o projeto
 
-### 1. Backend
-
-Entre na pasta:
+### 1. Clonar o repositorio
 
 ```bash
-cd backend
+git clone https://github.com/lucca-almeida/jhef-dammys.git
+cd jhef-dammys
 ```
 
-Instale as dependencias:
+### 2. Instalar as dependencias
+
+#### Frontend
 
 ```bash
+cd frontend
 npm.cmd install
 ```
 
-Rode a API:
+#### Backend
+
+```bash
+cd ../backend
+npm.cmd install
+```
+
+### 3. Configurar os arquivos de ambiente
+
+#### Frontend
+
+Existe um exemplo em:
+
+- [frontend/.env.example](frontend/.env.example)
+
+Crie um arquivo `.env.local` dentro de `frontend` com:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+#### Backend
+
+Existe um exemplo em:
+
+- [backend/.env.example](backend/.env.example)
+
+Crie um arquivo `.env` dentro de `backend` com base nele:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/churrasco_manager?schema=public"
+PORT=3001
+FRONTEND_URL="http://localhost:3000"
+```
+
+### 4. Banco de dados
+
+O projeto usa PostgreSQL local.
+
+Voce precisa ter:
+
+- PostgreSQL instalado
+- servico rodando na porta `5432`
+- usuario `postgres`
+- uma senha compativel com a configuracao do `.env`
+
+Se o banco `churrasco_manager` ainda nao existir, ele pode ser criado manualmente no PostgreSQL antes de rodar as migrations.
+
+### 5. Rodar as migrations
+
+Dentro da pasta `backend`:
+
+```bash
+npm.cmd run prisma:generate
+npm.cmd run prisma:migrate -- --name init
+```
+
+### 6. Rodar o backend
+
+Dentro da pasta `backend`:
 
 ```bash
 npm.cmd run start:dev
 ```
 
-Por padrao ela sobe em:
+Por padrao a API sobe em:
 
 `http://localhost:3001/api`
 
-### 2. Frontend
-
-Em outro terminal:
+Se o modo watch do Nest der problema no Windows, voce pode usar:
 
 ```bash
-cd frontend
+npm.cmd run build
+npm.cmd run start:prod
 ```
 
-Instale as dependencias:
+### 7. Rodar o frontend
 
-```bash
-npm.cmd install
-```
-
-Rode a aplicacao:
+Dentro da pasta `frontend`:
 
 ```bash
 npm.cmd run dev
 ```
 
-Por padrao ela sobe em:
+Por padrao a interface sobe em:
 
 `http://localhost:3000`
 
-## Banco de dados
+## Comandos uteis
 
-O projeto usa PostgreSQL local.
-
-A configuracao principal esta no arquivo:
-
-- [backend/.env](backend/.env)
-
-E o schema principal esta em:
-
-- [backend/prisma/schema.prisma](backend/prisma/schema.prisma)
-
-Para aplicar as migrations:
+### Backend
 
 ```bash
-cd backend
-npm.cmd run prisma:migrate -- --name nome-da-migration
-```
-
-Para regenerar o client do Prisma:
-
-```bash
+npm.cmd run build
+npm.cmd run start:dev
+npm.cmd run start:prod
 npm.cmd run prisma:generate
+npm.cmd run prisma:migrate -- --name nome-da-migration
+npm.cmd run test
 ```
 
-## Proximos passos planejados
+### Frontend
+
+```bash
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run lint
+```
+
+## Testes
+
+### Backend
+
+O backend ja vem preparado com Jest.
+
+Hoje:
+
+- a base de testes existe
+- ainda faltam testes reais das regras de negocio
+
+### Frontend
+
+O frontend ainda nao tem testes automatizados implementados.
+
+Mais para frente, a ideia e adicionar:
+
+- testes de componente
+- e depois testes de fluxo com Playwright
+
+## Rotas que ja podem ser abertas
+
+Com frontend e backend rodando, ja da para acessar:
+
+- `http://localhost:3000/dashboard`
+- `http://localhost:3000/clientes`
+- `http://localhost:3000/orcamentos`
+- `http://localhost:3000/agenda`
+- `http://localhost:3000/eventos`
+- `http://localhost:3000/estoque`
+- `http://localhost:3000/custos`
+- `http://localhost:3000/financeiro`
+
+## Proximos passos
 
 - completar o fluxo de orcamentos
 - adicionar servicos e itens do cardapio
@@ -173,7 +252,16 @@ npm.cmd run prisma:generate
 - transformar orcamento aprovado em evento
 - montar agenda real dos eventos
 - expandir custos, estoque e financeiro
+- adicionar testes automatizados
 
-## Observacao final
+## Sobre o GitHub
 
-Este projeto esta sendo construido com foco em estrutura, clareza e evolucao gradual. A ideia nao e apenas "fazer telas", mas criar uma base de sistema que realmente possa virar uma ferramenta de trabalho e, ao mesmo tempo, servir como projeto serio de desenvolvimento.
+Uma melhoria boa agora e preencher a descricao do repositorio no GitHub, porque isso nao vem do README automaticamente.
+
+Sugestao de descricao curta:
+
+`Sistema interno para gestao de eventos, orcamentos, clientes, custos e lucro.`
+
+## Fechando
+
+Este projeto esta sendo construido com foco em estrutura, clareza e evolucao gradual. A ideia nao e apenas fazer telas, mas montar uma base de sistema que possa realmente virar ferramenta de trabalho e, ao mesmo tempo, servir como projeto serio de desenvolvimento.
