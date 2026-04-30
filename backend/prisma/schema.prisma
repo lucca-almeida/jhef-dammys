@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum BudgetType {
+  LABOR_ONLY
+  FULL_SERVICE
+}
+
+enum BudgetStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+enum EventStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELED
+}
+
+enum PaymentType {
+  DOWN_PAYMENT
+  PARTIAL
+  FINAL
+}
+
+enum PaymentMethod {
+  PIX
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  instagram  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  budgets    Budget[]
+  events     Event[]
+}
+
+model Service {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  basePrice   Decimal?    @db.Decimal(10, 2)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  budgetItems BudgetItem[]
+  eventItems  EventItem[]
+}
+
+model Budget {
+  id             String       @id @default(uuid())
+  clientId       String
+  eventDate      DateTime
+  eventLocation  String?
+  guestCount     Int
+  budgetType     BudgetType
+  estimatedPrice Decimal      @db.Decimal(10, 2)
+  downPayment    Decimal?     @db.Decimal(10, 2)
+  status         BudgetStatus @default(DRAFT)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  client         Client       @relation(fields: [clientId], references: [id])
+  items          BudgetItem[]
+  event          Event?
+}
+
+model BudgetItem {
+  id        String   @id @default(uuid())
+  budgetId  String
+  serviceId String
+  quantity  Int      @default(1)
+  unitPrice Decimal? @db.Decimal(10, 2)
+  notes     String?
+  budget    Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Event {
+  id            String        @id @default(uuid())
+  clientId      String
+  budgetId      String?       @unique
+  title         String
+  eventDate     DateTime
+  eventLocation String?
+  guestCount    Int
+  budgetType    BudgetType
+  status        EventStatus   @default(PENDING)
+  finalPrice    Decimal       @db.Decimal(10, 2)
+  downPayment   Decimal?      @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  client        Client        @relation(fields: [clientId], references: [id])
+  budget        Budget?       @relation(fields: [budgetId], references: [id])
+  items         EventItem[]
+  payments      Payment[]
+  costs         EventCost[]
+}
+
+model EventItem {
+  id        String   @id @default(uuid())
+  eventId   String
+  serviceId String
+  quantity  Int      @default(1)
+  unitPrice Decimal? @db.Decimal(10, 2)
+  notes     String?
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  eventId   String
+  type      PaymentType
+  method    PaymentMethod @default(PIX)
+  amount    Decimal       @db.Decimal(10, 2)
+  paidAt    DateTime      @default(now())
+  notes     String?
+  createdAt DateTime      @default(now())
+  event     Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventCost {
+  id          String   @id @default(uuid())
+  eventId     String
+  category    String
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  spentAt     DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
