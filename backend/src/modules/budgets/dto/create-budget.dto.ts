@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
@@ -7,8 +9,11 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { BudgetStatus, BudgetType } from '@prisma/client';
+import { BudgetItemInputDto } from './budget-item-input.dto';
 
 export class CreateBudgetDto {
   @IsUUID()
@@ -44,4 +49,11 @@ export class CreateBudgetDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => BudgetItemInputDto)
+  items?: BudgetItemInputDto[];
 }

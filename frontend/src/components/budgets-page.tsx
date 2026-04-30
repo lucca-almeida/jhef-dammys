@@ -16,6 +16,14 @@ type ApiClient = {
   };
 };
 
+type ApiService = {
+  id: string;
+  name: string;
+  description: string | null;
+  basePrice: string | null;
+  isActive: boolean;
+};
+
 type BudgetType = 'LABOR_ONLY' | 'FULL_SERVICE';
 
 type BudgetStatus =
@@ -46,6 +54,13 @@ type ApiBudget = {
   };
 };
 
+type BudgetFormItem = {
+  serviceId: string;
+  quantity: string;
+  unitPrice: string;
+  notes: string;
+};
+
 type BudgetForm = {
   clientId: string;
   eventDate: string;
@@ -55,7 +70,15 @@ type BudgetForm = {
   estimatedPrice: string;
   downPayment: string;
   notes: string;
+  items: BudgetFormItem[];
 };
+
+const createEmptyItem = (): BudgetFormItem => ({
+  serviceId: '',
+  quantity: '1',
+  unitPrice: '',
+  notes: '',
+});
 
 const initialForm: BudgetForm = {
   clientId: '',
@@ -66,12 +89,13 @@ const initialForm: BudgetForm = {
   estimatedPrice: '',
   downPayment: '',
   notes: '',
+  items: [createEmptyItem()],
 };
 
 const serviceNotes = [
   'Mao de obra: quando o cliente fornece os materiais.',
   'Servico completo: quando o custo do mercado entra na conta.',
-  'Deixar sinal registrado ajuda a separar proposta de evento quase fechado.',
+  'Deixar os itens no orcamento ajuda a proposta a virar evento sem retrabalho.',
 ];
 
 function formatDate(value: string) {
@@ -115,6 +139,7 @@ function getBudgetStatusTone(status: BudgetStatus) {
 
 export function BudgetsPage() {
   const [clients, setClients] = useState<ApiClient[]>([]);
+  const [services, setServices] = useState<ApiService[]>([]);
   const [budgets, setBudgets] = useState<ApiBudget[]>([]);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<BudgetForm>(initialForm);
@@ -130,9 +155,10 @@ export function BudgetsPage() {
         setIsLoading(true);
         setError(null);
 
-        const [clientsData, budgetsData] = await Promise.all([
+        const [clientsData, budgetsData, servicesData] = await Promise.all([
           api<ApiClient[]>('/clients'),
           api<ApiBudget[]>('/budgets'),
+          api<ApiService[]>('/services?onlyActive=true'),
         ]);
 
         if (!isMounted) {
@@ -141,6 +167,7 @@ export function BudgetsPage() {
 
         setClients(clientsData);
         setBudgets(budgetsData);
+        setServices(servicesData);
         setForm((current) => ({
           ...current,
           clientId: current.clientId || clientsData[0]?.id || '',
@@ -150,7 +177,7 @@ export function BudgetsPage() {
           return;
         }
 
-        setError('Nao foi possivel carregar clientes e orcamentos da API.');
+        setError('Nao foi possivel carregar clientes, servicos e orcamentos da API.');
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -189,9 +216,7 @@ export function BudgetsPage() {
     const total = budgets.length;
     const approved = budgets.filter((budget) => budget.status === 'APPROVED').length;
     const sent = budgets.filter((budget) => budget.status === 'SENT').length;
-    const fullService = budgets.filter(
-      (budget) => budget.budgetType === 'FULL_SERVICE',
-    ).length;
+    const withItems = budgets.filter((budget) => budget._count.items > 0).length;
 
     return [
       {
@@ -205,12 +230,47 @@ export function BudgetsPage() {
         note: 'Propostas enviadas ao cliente',
       },
       {
-        label: 'Servico completo',
-        value: String(fullService),
-        note: 'Pedidos que exigem custo real de material',
+        label: 'Com itens definidos',
+        value: String(withItems),
+        note: 'Propostas que ja tem cardapio montado',
       },
     ];
   }, [budgets]);
+
+  const activeServices = useMemo(
+    () => services.filter((service) => service.isActive),
+    [services],
+  );
+
+  function updateFormItem(
+    index: number,
+    field: keyof BudgetFormItem,
+    value: string,
+  ) {
+    setForm((current) => ({
+      ...current,
+      items: current.items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    }));
+  }
+
+  function addFormItem() {
+    setForm((current) => ({
+      ...current,
+      items: [...current.items, createEmptyItem()],
+    }));
+  }
+
+  function removeFormItem(index: number) {
+    setForm((current) => ({
+      ...current,
+      items:
+        current.items.length === 1
+          ? [createEmptyItem()]
+          : current.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
 
   async function handleCreateBudget(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -218,6 +278,15 @@ export function BudgetsPage() {
     try {
       setIsSubmitting(true);
       setError(null);
+
+      const normalizedItems = form.items
+        .filter((item) => item.serviceId)
+        .map((item) => ({
+          serviceId: item.serviceId,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: item.unitPrice || undefined,
+          notes: item.notes || undefined,
+        }));
 
       const createdBudget = await api<ApiBudget>('/budgets', {
         method: 'POST',
@@ -230,6 +299,7 @@ export function BudgetsPage() {
           estimatedPrice: form.estimatedPrice,
           downPayment: form.downPayment || undefined,
           notes: form.notes || undefined,
+          items: normalizedItems,
         }),
       });
 
@@ -238,6 +308,7 @@ export function BudgetsPage() {
         ...initialForm,
         clientId: current.clientId,
         budgetType: 'FULL_SERVICE',
+        items: [createEmptyItem()],
       }));
     } catch (submitError) {
       setError('Nao foi possivel criar o orcamento agora.');
@@ -272,7 +343,7 @@ export function BudgetsPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <DashboardSection
           eyebrow="Novo orcamento"
           title="Cadastro inicial da proposta"
@@ -419,6 +490,112 @@ export function BudgetsPage() {
               />
             </label>
 
+            <div className="rounded-[24px] border border-border bg-white p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Itens do orcamento
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    Monte a proposta com os servicos do catalogo para ela ficar
+                    mais proxima do pedido real.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addFormItem}
+                  className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                >
+                  Adicionar item
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {form.items.map((item, index) => (
+                  <div
+                    key={`${index}-${item.serviceId || 'novo'}`}
+                    className="rounded-[22px] border border-border bg-[#fcf8f4] p-4"
+                  >
+                    <div className="grid gap-4 lg:grid-cols-[1.4fr_110px_150px_auto]">
+                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Servico
+                        </p>
+                        <select
+                          value={item.serviceId}
+                          onChange={(event) =>
+                            updateFormItem(index, 'serviceId', event.target.value)
+                          }
+                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                        >
+                          <option value="">Selecione</option>
+                          {activeServices.map((service) => (
+                            <option key={service.id} value={service.id}>
+                              {service.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Qtd.
+                        </p>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(event) =>
+                            updateFormItem(index, 'quantity', event.target.value)
+                          }
+                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                        />
+                      </label>
+
+                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Valor unit.
+                        </p>
+                        <input
+                          value={item.unitPrice}
+                          onChange={(event) =>
+                            updateFormItem(index, 'unitPrice', event.target.value)
+                          }
+                          placeholder="Opcional"
+                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                        />
+                      </label>
+
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => removeFormItem(index)}
+                          className="w-full rounded-[18px] border border-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+
+                    <label className="mt-4 block rounded-[18px] border border-border bg-white px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Observacao do item
+                      </p>
+                      <input
+                        value={item.notes}
+                        onChange={(event) =>
+                          updateFormItem(index, 'notes', event.target.value)
+                        }
+                        placeholder="Ex: incluir buffet de saladas completo"
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isSubmitting || !form.clientId}
@@ -429,7 +606,7 @@ export function BudgetsPage() {
           </form>
         </DashboardSection>
 
-        <DashboardSection eyebrow="Regras importantes" title="Como pensar o orçamento">
+        <DashboardSection eyebrow="Regras importantes" title="Como pensar o orcamento">
           <div className="space-y-3">
             {serviceNotes.map((note) => (
               <div
@@ -451,7 +628,11 @@ export function BudgetsPage() {
 
       <DashboardSection
         eyebrow="Lista de orcamentos"
-        title={isLoading ? 'Carregando propostas...' : `${filteredBudgets.length} proposta(s) na base`}
+        title={
+          isLoading
+            ? 'Carregando propostas...'
+            : `${filteredBudgets.length} proposta(s) na base`
+        }
         action="Atualizado pela API"
       >
         <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">

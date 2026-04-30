@@ -9,7 +9,27 @@ import { UpdateBudgetDto } from './dto/update-budget.dto';
 export class BudgetsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private mapBudgetItems(
+    items?: Array<{
+      serviceId: string;
+      quantity: number;
+      unitPrice?: string;
+      notes?: string;
+    }>,
+  ) {
+    return items?.map((item) => ({
+      serviceId: item.serviceId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice
+        ? new Prisma.Decimal(item.unitPrice)
+        : undefined,
+      notes: item.notes,
+    }));
+  }
+
   async create(createBudgetDto: CreateBudgetDto) {
+    const budgetItems = this.mapBudgetItems(createBudgetDto.items);
+
     return this.prisma.budget.create({
       data: {
         clientId: createBudgetDto.clientId,
@@ -23,9 +43,19 @@ export class BudgetsService {
           : undefined,
         status: createBudgetDto.status ?? BudgetStatus.DRAFT,
         notes: createBudgetDto.notes,
+        items: budgetItems?.length
+          ? {
+              create: budgetItems,
+            }
+          : undefined,
       },
       include: {
         client: true,
+        items: {
+          include: {
+            service: true,
+          },
+        },
         _count: {
           select: {
             items: true,
@@ -92,6 +122,8 @@ export class BudgetsService {
   }
 
   async update(id: string, updateBudgetDto: UpdateBudgetDto) {
+    const budgetItems = this.mapBudgetItems(updateBudgetDto.items);
+
     return this.prisma.budget.update({
       where: { id },
       data: {
@@ -110,9 +142,22 @@ export class BudgetsService {
           : undefined,
         status: updateBudgetDto.status,
         notes: updateBudgetDto.notes,
+        ...(updateBudgetDto.items
+          ? {
+              items: {
+                deleteMany: {},
+                create: budgetItems ?? [],
+              },
+            }
+          : {}),
       },
       include: {
         client: true,
+        items: {
+          include: {
+            service: true,
+          },
+        },
         _count: {
           select: {
             items: true,

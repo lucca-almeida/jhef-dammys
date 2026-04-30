@@ -8,6 +8,7 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/agenda', label: 'Agenda' },
   { href: '/clientes', label: 'Clientes' },
+  { href: '/servicos', label: 'Servicos' },
   { href: '/orcamentos', label: 'Orcamentos' },
   { href: '/eventos', label: 'Eventos' },
   { href: '/estoque', label: 'Estoque' },
