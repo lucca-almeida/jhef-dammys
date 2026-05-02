@@ -51,6 +51,12 @@ export class BudgetsService {
       },
       include: {
         client: true,
+        event: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
         items: {
           include: {
             service: true,
@@ -98,6 +104,12 @@ export class BudgetsService {
       },
       include: {
         client: true,
+        event: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
         _count: {
           select: {
             items: true,
@@ -112,6 +124,12 @@ export class BudgetsService {
       where: { id },
       include: {
         client: true,
+        event: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
         items: {
           include: {
             service: true,
@@ -153,6 +171,12 @@ export class BudgetsService {
       },
       include: {
         client: true,
+        event: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
         items: {
           include: {
             service: true,
