@@ -123,6 +123,7 @@ Ja esta funcionando:
 - conversao de orcamento em evento
 - copia dos itens do orcamento para o evento
 - atualizacao inicial de status do evento
+- painel com cardapio, pagamentos, custos e resultado por evento
 
 ### Agenda
 
@@ -319,7 +320,7 @@ Com frontend e backend rodando, ja da para acessar:
 
 - revisar o fluxo de orcamentos para uso diario
 - refinar a experiencia de envio e acompanhamento do orcamento
-- deixar o lucro real aparecer tambem em eventos e dashboard
+- levar o resultado financeiro tambem para uma visao mais resumida no evento
 - ligar melhor dashboard, agenda, eventos e financeiro
 - melhorar ainda mais a experiencia de produtos e ficha tecnica
 - preparar o sistema para uso interno continuo

@@ -72,6 +72,35 @@ type ApiCost = {
   amount: string;
 };
 
+type EventDetail = ApiEvent & {
+  items: Array<{
+    id: string;
+    quantity: number;
+    unitPrice: string | null;
+    notes: string | null;
+    service: {
+      id: string;
+      name: string;
+    };
+  }>;
+  payments: Array<{
+    id: string;
+    type: 'DOWN_PAYMENT' | 'PARTIAL' | 'FINAL';
+    method: 'PIX' | 'CASH' | 'CARD' | 'TRANSFER' | 'OTHER';
+    amount: string;
+    paidAt: string;
+    notes: string | null;
+  }>;
+  costs: Array<{
+    id: string;
+    category: string;
+    description: string;
+    amount: string;
+    spentAt: string;
+    notes: string | null;
+  }>;
+};
+
 type EventCard = ApiEvent & {
   received: number;
   costs: number;
@@ -134,8 +163,11 @@ export function EventsPage() {
   const [budgets, setBudgets] = useState<ApiBudget[]>([]);
   const [payments, setPayments] = useState<ApiPayment[]>([]);
   const [costs, setCosts] = useState<ApiCost[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState('');
+  const [selectedEventDetails, setSelectedEventDetails] = useState<EventDetail | null>(null);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
   const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +195,7 @@ export function EventsPage() {
         setBudgets(budgetsData);
         setPayments(paymentsData);
         setCosts(costsData);
+        setSelectedEventId((current) => current || eventsData[0]?.id || '');
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar eventos e orcamentos da API.');
@@ -180,6 +213,42 @@ export function EventsPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEventDetails() {
+      if (!selectedEventId) {
+        setSelectedEventDetails(null);
+        return;
+      }
+
+      try {
+        setIsLoadingDetails(true);
+        const detail = await api<EventDetail>(`/events/${selectedEventId}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setSelectedEventDetails(detail);
+      } catch (loadError) {
+        if (isMounted) {
+          setError('Nao foi possivel carregar os detalhes do evento selecionado.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDetails(false);
+        }
+      }
+    }
+
+    void loadEventDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedEventId]);
 
   const budgetsReady = useMemo(
     () =>
@@ -282,6 +351,7 @@ export function EventsPage() {
             new Date(left.eventDate).getTime() - new Date(right.eventDate).getTime(),
         );
       });
+      setSelectedEventId(createdEvent.id);
 
       setBudgets((current) =>
         current.map((item) =>
@@ -330,12 +400,44 @@ export function EventsPage() {
       setEvents((current) =>
         current.map((item) => (item.id === event.id ? updatedEvent : item)),
       );
+      setSelectedEventDetails((current) =>
+        current && current.id === event.id
+          ? {
+              ...current,
+              ...updatedEvent,
+            }
+          : current,
+      );
     } catch (updateError) {
       setError('Nao foi possivel atualizar o status do evento.');
     } finally {
       setIsUpdatingId(null);
     }
   }
+
+  const selectedEventMetrics = useMemo(() => {
+    if (!selectedEventDetails) {
+      return null;
+    }
+
+    const received = selectedEventDetails.payments.reduce(
+      (total, payment) => total + Number(payment.amount),
+      0,
+    );
+    const eventCosts = selectedEventDetails.costs.reduce(
+      (total, costItem) => total + Number(costItem.amount),
+      0,
+    );
+    const finalPrice = Number(selectedEventDetails.finalPrice);
+
+    return {
+      received,
+      eventCosts,
+      outstanding: Math.max(finalPrice - received, 0),
+      projectedProfit: finalPrice - eventCosts,
+      currentResult: received - eventCosts,
+    };
+  }, [selectedEventDetails]);
 
   return (
     <>
@@ -363,7 +465,7 @@ export function EventsPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <DashboardSection
           eyebrow="Orcamentos prontos"
           title={`${budgetsReady.length} proposta(s) esperando virar evento`}
@@ -433,7 +535,9 @@ export function EventsPage() {
             ) : null}
           </div>
         </DashboardSection>
+      </div>
 
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <DashboardSection
           eyebrow="Eventos ativos"
           title={isLoading ? 'Carregando agenda...' : `${filteredEvents.length} evento(s) na base`}
@@ -465,7 +569,11 @@ export function EventsPage() {
             {filteredEvents.map((event) => (
               <article
                 key={event.id}
-                className="rounded-[24px] border border-border bg-white px-4 py-4"
+                className={`rounded-[24px] border bg-white px-4 py-4 transition ${
+                  selectedEventId === event.id
+                    ? 'border-accent shadow-[0_20px_40px_rgba(102,66,46,0.08)]'
+                    : 'border-border'
+                }`}
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
@@ -480,6 +588,17 @@ export function EventsPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEventId(event.id)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                          selectedEventId === event.id
+                            ? 'border-accent bg-accent text-white'
+                            : 'border-border bg-white text-foreground hover:border-accent/40'
+                        }`}
+                      >
+                        Detalhes
+                      </button>
                       <span className="rounded-full bg-[#f6ede7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
                         {getBudgetTypeLabel(event.budgetType)}
                       </span>
@@ -585,6 +704,211 @@ export function EventsPage() {
               </div>
             ) : null}
           </div>
+        </DashboardSection>
+
+        <DashboardSection
+          eyebrow="Painel do evento"
+          title={
+            selectedEventDetails
+              ? selectedEventDetails.title
+              : 'Selecione um evento'
+          }
+          action="Visao completa"
+        >
+          {isLoadingDetails ? (
+            <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+              Carregando detalhes do evento...
+            </div>
+          ) : null}
+
+          {!isLoadingDetails && !selectedEventDetails ? (
+            <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+              Escolha um evento da lista para ver cardapio, pagamentos, custos e resultado.
+            </div>
+          ) : null}
+
+          {selectedEventDetails && selectedEventMetrics ? (
+            <div className="space-y-5">
+              <div className="rounded-[24px] border border-border bg-white px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-semibold tracking-tight text-foreground">
+                      {selectedEventDetails.client.name}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-muted">
+                      {formatDate(selectedEventDetails.eventDate)}
+                      {selectedEventDetails.eventLocation
+                        ? ` - ${selectedEventDetails.eventLocation}`
+                        : ''}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${getEventStatusTone(
+                      selectedEventDetails.status,
+                    )}`}
+                  >
+                    {getEventStatusLabel(selectedEventDetails.status)}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Valor fechado
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(selectedEventDetails.finalPrice)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Pessoas
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {selectedEventDetails.guestCount}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Recebido
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(selectedEventMetrics.received.toFixed(2))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custos lancados
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(selectedEventMetrics.eventCosts.toFixed(2))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Falta receber
+                    </p>
+                    <p className="mt-2 font-medium text-[#8a4c30]">
+                      {formatCurrency(selectedEventMetrics.outstanding.toFixed(2))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Resultado atual
+                    </p>
+                    <p
+                      className={`mt-2 font-medium ${
+                        selectedEventMetrics.currentResult >= 0
+                          ? 'text-[#2d6a3a]'
+                          : 'text-[#8f4242]'
+                      }`}
+                    >
+                      {formatCurrency(selectedEventMetrics.currentResult.toFixed(2))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-border bg-white px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Cardapio do evento
+                </p>
+                <div className="mt-3 space-y-3">
+                  {selectedEventDetails.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-[18px] border border-border px-4 py-3 text-sm text-muted"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {item.service.name}
+                          </p>
+                          {item.notes ? (
+                            <p className="mt-1 leading-6">{item.notes}</p>
+                          ) : null}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-foreground">
+                            {item.quantity}x
+                          </p>
+                          <p className="mt-1 text-xs">
+                            {item.unitPrice
+                              ? formatCurrency(item.unitPrice)
+                              : 'Valor nao definido'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedEventDetails.items.length === 0 ? (
+                    <div className="rounded-[18px] border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                      Esse evento ainda nao tem itens detalhados.
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className="rounded-[24px] border border-border bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Pagamentos
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {selectedEventDetails.payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="rounded-[18px] border border-border px-4 py-3 text-sm text-muted"
+                      >
+                        <p className="font-medium text-foreground">
+                          {formatCurrency(payment.amount)}
+                        </p>
+                        <p className="mt-1 leading-6">
+                          {payment.type} via {payment.method} em {formatDate(payment.paidAt)}
+                        </p>
+                      </div>
+                    ))}
+
+                    {selectedEventDetails.payments.length === 0 ? (
+                      <div className="rounded-[18px] border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                        Nenhum pagamento registrado ainda.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-border bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Custos
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {selectedEventDetails.costs.map((costItem) => (
+                      <div
+                        key={costItem.id}
+                        className="rounded-[18px] border border-border px-4 py-3 text-sm text-muted"
+                      >
+                        <p className="font-medium text-foreground">
+                          {costItem.description}
+                        </p>
+                        <p className="mt-1 leading-6">
+                          {costItem.category} - {formatCurrency(costItem.amount)} em{' '}
+                          {formatDate(costItem.spentAt)}
+                        </p>
+                      </div>
+                    ))}
+
+                    {selectedEventDetails.costs.length === 0 ? (
+                      <div className="rounded-[18px] border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                        Nenhum custo registrado ainda.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </DashboardSection>
       </div>
 
