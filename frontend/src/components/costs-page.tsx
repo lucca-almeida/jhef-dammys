@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardSection } from '@/components/dashboard-section';
 import { PageHeader } from '@/components/page-header';
@@ -80,6 +81,7 @@ function getStatusTone(status: EventStatus) {
 }
 
 export function CostsPage() {
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [costs, setCosts] = useState<ApiCost[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
@@ -92,6 +94,7 @@ export function CostsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const preferredEventId = searchParams.get('eventId');
 
   useEffect(() => {
     let isMounted = true;
@@ -112,7 +115,16 @@ export function CostsPage() {
 
         setEvents(eventsData);
         setCosts(costsData);
-        setSelectedEventId((current) => current || eventsData[0]?.id || '');
+        setSelectedEventId((current) => {
+          if (
+            preferredEventId &&
+            eventsData.some((event) => event.id === preferredEventId)
+          ) {
+            return preferredEventId;
+          }
+
+          return current || eventsData[0]?.id || '';
+        });
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar os custos agora.');
@@ -129,7 +141,7 @@ export function CostsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [preferredEventId]);
 
   const summary = useMemo(() => {
     const totalCosts = costs.reduce((total, cost) => total + Number(cost.amount), 0);

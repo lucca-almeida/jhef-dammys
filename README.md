@@ -81,6 +81,8 @@ Ja esta funcionando:
 - busca de clientes
 - detalhes basicos do cliente
 - integracao real entre frontend, backend e banco
+- edicao rapida do cliente selecionado
+- atalho para abrir orcamento com o cliente ja preselecionado
 
 ### Orcamentos
 
@@ -102,6 +104,7 @@ Ja esta funcionando:
 - cadastro de servicos
 - listagem de servicos
 - ativar e desativar servicos
+- edicao rapida do servico selecionado
 - ficha tecnica por servico
 - custo estimado por pessoa
 
@@ -125,6 +128,7 @@ Ja esta funcionando:
 - copia dos itens do orcamento para o evento
 - atualizacao inicial de status do evento
 - painel com cardapio, pagamentos, custos e resultado por evento
+- atalhos para abrir financeiro e custos com o evento ja selecionado
 
 ### Agenda
 

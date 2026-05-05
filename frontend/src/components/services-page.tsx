@@ -41,6 +41,12 @@ type ServiceForm = {
   basePrice: string;
 };
 
+const createFormFromService = (service: ApiService): ServiceForm => ({
+  name: service.name,
+  description: service.description ?? '',
+  basePrice: service.basePrice ?? '',
+});
+
 type RecipeFormItem = {
   productId: string;
   quantityPerPerson: string;
@@ -95,6 +101,7 @@ export function ServicesPage() {
   const [form, setForm] = useState<ServiceForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -191,6 +198,8 @@ export function ServicesPage() {
       return;
     }
 
+    setForm(createFormFromService(selectedService));
+
     if (selectedService.recipeItems.length === 0) {
       setRecipeItems([createEmptyRecipeItem()]);
       return;
@@ -247,6 +256,37 @@ export function ServicesPage() {
       );
     } catch (toggleError) {
       setError('Nao foi possivel atualizar o status do servico.');
+    }
+  }
+
+  async function handleUpdateService(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedService) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setError(null);
+
+      const updatedService = await api<ApiService>(`/services/${selectedService.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: form.name,
+          description: form.description || undefined,
+          basePrice: form.basePrice || undefined,
+        }),
+      });
+
+      setServices((current) =>
+        current.map((item) => (item.id === selectedService.id ? updatedService : item)),
+      );
+      setForm(createFormFromService(updatedService));
+    } catch (updateError) {
+      setError('Nao foi possivel atualizar o servico agora.');
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -560,6 +600,79 @@ export function ServicesPage() {
             </div>
           ) : (
             <div className="space-y-4">
+              <form className="grid gap-4" onSubmit={handleUpdateService}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Nome do servico
+                    </p>
+                    <input
+                      required
+                      value={form.name}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+
+                  <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Valor base
+                    </p>
+                    <input
+                      value={form.basePrice}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          basePrice: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+                </div>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Descricao
+                  </p>
+                  <textarea
+                    value={form.description}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="mt-2 w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isUpdating ? 'Salvando...' : 'Salvar dados do servico'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedService && setForm(createFormFromService(selectedService))
+                    }
+                    className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                  >
+                    Restaurar dados
+                  </button>
+                </div>
+              </form>
+
               <div className="rounded-[22px] border border-border bg-white px-4 py-4 text-sm leading-6 text-muted">
                 <p className="font-medium text-foreground">
                   Custo estimado por pessoa:

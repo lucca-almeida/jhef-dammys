@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -170,6 +171,7 @@ function getBudgetStatusTone(status: BudgetStatus) {
 }
 
 export function BudgetsPage() {
+  const searchParams = useSearchParams();
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [services, setServices] = useState<ApiService[]>([]);
   const [budgets, setBudgets] = useState<ApiBudget[]>([]);
@@ -182,6 +184,7 @@ export function BudgetsPage() {
   const [lastAutoEstimate, setLastAutoEstimate] = useState('');
   const [operationalExtra, setOperationalExtra] = useState('0');
   const [desiredMarginPercent, setDesiredMarginPercent] = useState('0');
+  const preferredClientId = searchParams.get('clientId');
 
   useEffect(() => {
     let isMounted = true;
@@ -206,7 +209,13 @@ export function BudgetsPage() {
         setServices(servicesData);
         setForm((current) => ({
           ...current,
-          clientId: current.clientId || clientsData[0]?.id || '',
+          clientId:
+            (preferredClientId &&
+            clientsData.some((client) => client.id === preferredClientId)
+              ? preferredClientId
+              : current.clientId) ||
+            clientsData[0]?.id ||
+            '',
         }));
       } catch (loadError) {
         if (!isMounted) {
@@ -226,7 +235,7 @@ export function BudgetsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [preferredClientId]);
 
   const filteredBudgets = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -25,6 +26,13 @@ type CreateClientForm = {
   instagram: string;
   notes: string;
 };
+
+const createFormFromClient = (client: ApiClient): CreateClientForm => ({
+  name: client.name,
+  phone: client.phone,
+  instagram: client.instagram ?? '',
+  notes: client.notes ?? '',
+});
 
 const quickNotes = [
   'Clientes vindos do Instagram costumam precisar de mais acompanhamento ate o fechamento.',
@@ -80,8 +88,10 @@ export function ClientsPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<CreateClientForm>(initialForm);
+  const [editForm, setEditForm] = useState<CreateClientForm>(initialForm);
 
   useEffect(() => {
     let isMounted = true;
@@ -136,6 +146,14 @@ export function ClientsPage() {
   const selectedClient =
     clients.find((client) => client.id === selectedClientId) ?? clients[0] ?? null;
 
+  useEffect(() => {
+    if (!selectedClient) {
+      return;
+    }
+
+    setEditForm(createFormFromClient(selectedClient));
+  }, [selectedClient]);
+
   const summaryCards = useMemo(() => {
     const activeClients = clients.length;
     const clientsWithEvents = clients.filter((client) => client._count.events > 0).length;
@@ -185,6 +203,47 @@ export function ClientsPage() {
       setError('Nao foi possivel cadastrar o cliente agora.');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleUpdateClient(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedClient) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setError(null);
+
+      const updatedClient = await api<Omit<ApiClient, '_count'>>(
+        `/clients/${selectedClient.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: editForm.name,
+            phone: editForm.phone,
+            instagram: editForm.instagram || undefined,
+            notes: editForm.notes || undefined,
+          }),
+        },
+      );
+
+      setClients((current) =>
+        current.map((client) =>
+          client.id === selectedClient.id
+            ? {
+                ...client,
+                ...updatedClient,
+              }
+            : client,
+        ),
+      );
+    } catch (updateError) {
+      setError('Nao foi possivel atualizar o cliente agora.');
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -453,13 +512,103 @@ export function ClientsPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button className="rounded-2xl border border-accent bg-accent px-4 py-3 text-sm font-medium text-white transition hover:opacity-95">
+                <Link
+                  href={`/orcamentos?clientId=${selectedClient.id}`}
+                  className="rounded-2xl border border-accent bg-accent px-4 py-3 text-center text-sm font-medium text-white transition hover:opacity-95"
+                >
                   Criar orcamento
-                </button>
-                <button className="rounded-2xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/40">
-                  Editar cliente
-                </button>
+                </Link>
               </div>
+
+              <form className="grid gap-4" onSubmit={handleUpdateClient}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Nome
+                    </p>
+                    <input
+                      required
+                      value={editForm.name}
+                      onChange={(event) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+
+                  <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Telefone
+                    </p>
+                    <input
+                      required
+                      value={editForm.phone}
+                      onChange={(event) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          phone: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+                </div>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Instagram
+                  </p>
+                  <input
+                    value={editForm.instagram}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        instagram: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Observacoes
+                  </p>
+                  <textarea
+                    value={editForm.notes}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        notes: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="mt-2 w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="rounded-2xl border border-accent bg-accent px-4 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isUpdating ? 'Salvando...' : 'Salvar alteracoes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedClient && setEditForm(createFormFromClient(selectedClient))
+                    }
+                    className="rounded-2xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                  >
+                    Restaurar dados
+                  </button>
+                </div>
+              </form>
             </div>
           ) : (
             <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">

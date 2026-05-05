@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardSection } from '@/components/dashboard-section';
 import { PageHeader } from '@/components/page-header';
@@ -146,6 +147,7 @@ function getPaymentMethodLabel(method: PaymentMethod) {
 }
 
 export function FinancePage() {
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [payments, setPayments] = useState<ApiPayment[]>([]);
   const [costs, setCosts] = useState<ApiCost[]>([]);
@@ -159,6 +161,7 @@ export function FinancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const preferredEventId = searchParams.get('eventId');
 
   useEffect(() => {
     let isMounted = true;
@@ -182,7 +185,16 @@ export function FinancePage() {
         setPayments(paymentsData);
         setCosts(costsData);
 
-        setSelectedEventId((current) => current || eventsData[0]?.id || '');
+        setSelectedEventId((current) => {
+          if (
+            preferredEventId &&
+            eventsData.some((event) => event.id === preferredEventId)
+          ) {
+            return preferredEventId;
+          }
+
+          return current || eventsData[0]?.id || '';
+        });
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar os dados do financeiro.');
@@ -199,7 +211,7 @@ export function FinancePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [preferredEventId]);
 
   const eventCards = useMemo<EventFinancialCard[]>(() => {
     return events.map((event) => {

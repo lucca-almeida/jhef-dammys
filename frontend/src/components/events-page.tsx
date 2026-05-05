@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -853,9 +854,17 @@ export function EventsPage() {
 
               <div className="grid gap-5 lg:grid-cols-2">
                 <div className="rounded-[24px] border border-border bg-white px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Pagamentos
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Pagamentos
+                    </p>
+                    <Link
+                      href={`/financeiro?eventId=${selectedEventDetails.id}`}
+                      className="rounded-full border border-accent/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                    >
+                      Lancar no financeiro
+                    </Link>
+                  </div>
                   <div className="mt-3 space-y-3">
                     {selectedEventDetails.payments.map((payment) => (
                       <div
@@ -880,9 +889,17 @@ export function EventsPage() {
                 </div>
 
                 <div className="rounded-[24px] border border-border bg-white px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Custos
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custos
+                    </p>
+                    <Link
+                      href={`/custos?eventId=${selectedEventDetails.id}`}
+                      className="rounded-full border border-accent/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                    >
+                      Lancar em custos
+                    </Link>
+                  </div>
                   <div className="mt-3 space-y-3">
                     {selectedEventDetails.costs.map((costItem) => (
                       <div
