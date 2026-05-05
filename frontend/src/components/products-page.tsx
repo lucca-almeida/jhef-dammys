@@ -43,6 +43,17 @@ const initialForm: ProductForm = {
   minimumStock: '',
 };
 
+const createFormFromProduct = (product: ApiProduct): ProductForm => ({
+  name: product.name,
+  description: product.description ?? '',
+  category: product.category ?? '',
+  unit: product.unit,
+  currentCost: product.currentCost,
+  averageCost: product.averageCost ?? '',
+  stockQuantity: product.stockQuantity ?? '',
+  minimumStock: product.minimumStock ?? '',
+});
+
 const productNotes = [
   'Aqui entram os ingredientes e insumos reais que ele compra no mercado.',
   'O custo atual vai alimentar o calculo automatico do orcamento.',
@@ -80,10 +91,12 @@ function formatQuantity(value: string | null, unit: string) {
 
 export function ProductsPage() {
   const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<ProductForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,6 +115,7 @@ export function ProductsPage() {
 
         if (isMounted) {
           setProducts(data);
+          setSelectedProductId((current) => current || data[0]?.id || '');
         }
       } catch (loadError) {
         if (isMounted) {
@@ -156,6 +170,19 @@ export function ProductsPage() {
     ];
   }, [products]);
 
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === selectedProductId) ?? null,
+    [products, selectedProductId],
+  );
+
+  useEffect(() => {
+    if (!selectedProduct) {
+      return;
+    }
+
+    setForm(createFormFromProduct(selectedProduct));
+  }, [selectedProduct]);
+
   async function handleCreateProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -178,6 +205,7 @@ export function ProductsPage() {
       });
 
       setProducts((current) => [createdProduct, ...current]);
+      setSelectedProductId(createdProduct.id);
       setForm(initialForm);
     } catch (submitError) {
       setError('Nao foi possivel cadastrar o produto agora.');
@@ -202,6 +230,42 @@ export function ProductsPage() {
       );
     } catch (toggleError) {
       setError('Nao foi possivel atualizar o status do produto.');
+    }
+  }
+
+  async function handleUpdateProduct(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProduct) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setError(null);
+
+      const updatedProduct = await api<ApiProduct>(`/products/${selectedProduct.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: form.name,
+          description: form.description || undefined,
+          category: form.category || undefined,
+          unit: form.unit,
+          currentCost: form.currentCost,
+          averageCost: form.averageCost || undefined,
+          stockQuantity: form.stockQuantity || undefined,
+          minimumStock: form.minimumStock || undefined,
+        }),
+      });
+
+      setProducts((current) =>
+        current.map((item) => (item.id === selectedProduct.id ? updatedProduct : item)),
+      );
+      setForm(createFormFromProduct(updatedProduct));
+    } catch (updateError) {
+      setError('Nao foi possivel atualizar esse produto agora.');
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -399,135 +463,323 @@ export function ProductsPage() {
         </div>
       ) : null}
 
-      <DashboardSection
-        eyebrow="Base de produtos"
-        title={isLoading ? 'Carregando insumos...' : `${products.length} item(ns) cadastrados`}
-        action="Atualizado pela API"
-      >
-        <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
-          <label className="rounded-[22px] border border-border bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              Buscar produto
-            </p>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nome, descricao ou categoria"
-              className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-            />
-          </label>
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <DashboardSection
+          eyebrow="Base de produtos"
+          title={isLoading ? 'Carregando insumos...' : `${products.length} item(ns) cadastrados`}
+          action="Atualizado pela API"
+        >
+          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+            <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Buscar produto
+              </p>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nome, descricao ou categoria"
+                className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+              />
+            </label>
 
-          <button
-            type="button"
-            onClick={() => setSearch('')}
-            className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
-          >
-            Limpar
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+            >
+              Limpar
+            </button>
+          </div>
 
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
-              Buscando produtos no backend...
-            </div>
-          ) : null}
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+                Buscando produtos no backend...
+              </div>
+            ) : null}
 
-          {!isLoading &&
-            products.map((product) => (
-              <article
-                key={product.id}
-                className="rounded-[24px] border border-border bg-white px-4 py-4"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-lg font-semibold tracking-tight">
-                        {product.name}
-                      </h4>
-                      <p className="mt-1 text-sm leading-6 text-muted">
-                        {product.category ? `${product.category} - ` : ''}
-                        {product.description || 'Sem descricao cadastrada.'}
-                      </p>
+            {!isLoading &&
+              products.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => setSelectedProductId(product.id)}
+                  className={`w-full rounded-[24px] border px-4 py-4 text-left transition ${
+                    selectedProductId === product.id
+                      ? 'border-accent bg-[#fff4eb]'
+                      : 'border-border bg-white hover:border-accent/40'
+                  }`}
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="text-lg font-semibold tracking-tight">
+                          {product.name}
+                        </h4>
+                        <p className="mt-1 text-sm leading-6 text-muted">
+                          {product.category ? `${product.category} - ` : ''}
+                          {product.description || 'Sem descricao cadastrada.'}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${
+                            product.isActive
+                              ? 'border-[#bfdfc5] bg-[#e8f4ea] text-[#2d6a3a]'
+                              : 'border-[#e6c0c0] bg-[#f7e8e8] text-[#8f4242]'
+                          }`}
+                        >
+                          {product.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                        <span className="rounded-full bg-[#f6ede7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
+                          {product.unit}
+                        </span>
+                        {product.minimumStock &&
+                        product.stockQuantity &&
+                        Number(product.stockQuantity) <= Number(product.minimumStock) ? (
+                          <span className="rounded-full border border-[#eed6a6] bg-[#fff7df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#946f18]">
+                            Estoque baixo
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <span
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${
-                          product.isActive
-                            ? 'border-[#bfdfc5] bg-[#e8f4ea] text-[#2d6a3a]'
-                            : 'border-[#e6c0c0] bg-[#f7e8e8] text-[#8f4242]'
-                        }`}
-                      >
-                        {product.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
-                      <span className="rounded-full bg-[#f6ede7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-                        {product.unit}
-                      </span>
-                      {product.minimumStock &&
-                      product.stockQuantity &&
-                      Number(product.stockQuantity) <= Number(product.minimumStock) ? (
-                        <span className="rounded-full border border-[#eed6a6] bg-[#fff7df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#946f18]">
-                          Estoque baixo
-                        </span>
-                      ) : null}
+                    <div className="grid gap-3 text-sm text-muted sm:grid-cols-5 lg:w-[600px] lg:text-right">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Custo atual
+                        </p>
+                        <p className="mt-2 font-medium text-foreground">
+                          {formatCurrency(product.currentCost)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Estoque
+                        </p>
+                        <p className="mt-2 font-medium text-foreground">
+                          {formatQuantity(product.stockQuantity, product.unit)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Minimo
+                        </p>
+                        <p className="mt-2 font-medium text-foreground">
+                          {formatQuantity(product.minimumStock, product.unit)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                          Em receitas
+                        </p>
+                        <p className="mt-2 font-medium text-foreground">
+                          {product._count.recipeItems}
+                        </p>
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleToggleProduct(product);
+                          }}
+                          className="mt-2 rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                        >
+                          {product.isActive ? 'Desativar' : 'Ativar'}
+                        </button>
+                      </div>
                     </div>
                   </div>
+                </button>
+              ))}
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-5 lg:w-[600px] lg:text-right">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Custo atual
-                      </p>
-                      <p className="mt-2 font-medium text-foreground">
-                        {formatCurrency(product.currentCost)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Estoque
-                      </p>
-                      <p className="mt-2 font-medium text-foreground">
-                        {formatQuantity(product.stockQuantity, product.unit)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Minimo
-                      </p>
-                      <p className="mt-2 font-medium text-foreground">
-                        {formatQuantity(product.minimumStock, product.unit)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Em receitas
-                      </p>
-                      <p className="mt-2 font-medium text-foreground">
-                        {product._count.recipeItems}
-                      </p>
-                    </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => void handleToggleProduct(product)}
-                        className="mt-2 rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
-                      >
-                        {product.isActive ? 'Desativar' : 'Ativar'}
-                      </button>
-                    </div>
+            {!isLoading && products.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+                Nenhum produto cadastrado ainda. Comece pelos ingredientes de uso mais frequente.
+              </div>
+            ) : null}
+          </div>
+        </DashboardSection>
+
+        <DashboardSection
+          eyebrow="Edicao rapida"
+          title={selectedProduct ? selectedProduct.name : 'Escolha um produto'}
+          action="Atualizar base"
+        >
+          {!selectedProduct ? (
+            <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+              Selecione um produto da lista para atualizar custo, estoque e minimo.
+            </div>
+          ) : (
+            <form className="grid gap-4" onSubmit={handleUpdateProduct}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Nome
+                  </p>
+                  <input
+                    required
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, name: event.target.value }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Categoria
+                  </p>
+                  <input
+                    value={form.category}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, category: event.target.value }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+              </div>
+
+              <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Descricao
+                </p>
+                <textarea
+                  value={form.description}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="mt-2 w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none"
+                />
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-4">
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Unidade
+                  </p>
+                  <select
+                    value={form.unit}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, unit: event.target.value }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  >
+                    {unitOptions.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Custo atual
+                  </p>
+                  <input
+                    required
+                    value={form.currentCost}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        currentCost: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Estoque
+                  </p>
+                  <input
+                    value={form.stockQuantity}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        stockQuantity: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Minimo
+                  </p>
+                  <input
+                    value={form.minimumStock}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        minimumStock: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+              </div>
+
+              <div className="rounded-[22px] border border-border bg-white px-4 py-4 text-sm text-muted">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Em receitas
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {selectedProduct._count.recipeItems}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custo atual
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(selectedProduct.currentCost)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Estoque atual
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatQuantity(selectedProduct.stockQuantity, selectedProduct.unit)}
+                    </p>
                   </div>
                 </div>
-              </article>
-            ))}
+              </div>
 
-          {!isLoading && products.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
-              Nenhum produto cadastrado ainda. Comece pelos ingredientes de uso mais frequente.
-            </div>
-          ) : null}
-        </div>
-      </DashboardSection>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isUpdating ? 'Atualizando...' : 'Salvar alteracoes'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm(createFormFromProduct(selectedProduct))}
+                  className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                >
+                  Restaurar dados
+                </button>
+              </div>
+            </form>
+          )}
+        </DashboardSection>
+      </div>
     </>
   );
 }

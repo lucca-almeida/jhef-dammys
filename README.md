@@ -114,6 +114,7 @@ Ja esta funcionando:
 - unidade de medida
 - estoque minimo e estoque atual
 - base para alimentar a ficha tecnica
+- edicao rapida para atualizar preco e estoque conforme o mercado muda
 
 ### Eventos
 
@@ -323,6 +324,7 @@ Com frontend e backend rodando, ja da para acessar:
 - levar o resultado financeiro tambem para uma visao mais resumida no evento
 - ligar melhor dashboard, agenda, eventos e financeiro
 - melhorar ainda mais a experiencia de produtos e ficha tecnica
+- deixar clientes e servicos tambem mais faceis de editar no dia a dia
 - preparar o sistema para uso interno continuo
 - adicionar testes automatizados
 
