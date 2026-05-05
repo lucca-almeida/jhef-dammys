@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
@@ -62,9 +63,32 @@ type ApiBudget = {
     name: string;
     phone: string;
   };
+  event: {
+    id: string;
+    status: string;
+  } | null;
   _count: {
     items: number;
   };
+};
+
+type ApiBudgetDetail = ApiBudget & {
+  items: Array<{
+    id: string;
+    serviceId: string;
+    quantity: number;
+    unitPrice: string | null;
+    notes: string | null;
+    service: {
+      id: string;
+      name: string;
+    };
+  }>;
+};
+
+type ApiCreatedEvent = {
+  id: string;
+  status: string;
 };
 
 type BudgetFormItem = {
@@ -180,11 +204,50 @@ export function BudgetsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdatingStatusId, setIsUpdatingStatusId] = useState<string | null>(null);
+  const [isEditingBudgetId, setIsEditingBudgetId] = useState<string | null>(null);
+  const [isLoadingBudgetId, setIsLoadingBudgetId] = useState<string | null>(null);
+  const [isConvertingBudgetId, setIsConvertingBudgetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastAutoEstimate, setLastAutoEstimate] = useState('');
   const [operationalExtra, setOperationalExtra] = useState('0');
   const [desiredMarginPercent, setDesiredMarginPercent] = useState('0');
   const preferredClientId = searchParams.get('clientId');
+
+  function getPreferredClientId(options?: {
+    clientsList?: ApiClient[];
+    fallbackClientId?: string;
+  }) {
+    const clientsList = options?.clientsList ?? clients;
+
+    if (
+      preferredClientId &&
+      clientsList.some((client) => client.id === preferredClientId)
+    ) {
+      return preferredClientId;
+    }
+
+    if (
+      options?.fallbackClientId &&
+      clientsList.some((client) => client.id === options.fallbackClientId)
+    ) {
+      return options.fallbackClientId;
+    }
+
+    return clientsList[0]?.id ?? '';
+  }
+
+  function resetBudgetForm(fallbackClientId?: string) {
+    setForm({
+      ...initialForm,
+      clientId: getPreferredClientId({ fallbackClientId }),
+      budgetType: 'FULL_SERVICE',
+      items: [createEmptyItem()],
+    });
+    setIsEditingBudgetId(null);
+    setLastAutoEstimate('');
+    setOperationalExtra('0');
+    setDesiredMarginPercent('0');
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -207,16 +270,22 @@ export function BudgetsPage() {
         setClients(clientsData);
         setBudgets(budgetsData);
         setServices(servicesData);
-        setForm((current) => ({
-          ...current,
-          clientId:
-            (preferredClientId &&
-            clientsData.some((client) => client.id === preferredClientId)
-              ? preferredClientId
-              : current.clientId) ||
-            clientsData[0]?.id ||
-            '',
-        }));
+        setForm((current) => {
+          const nextClientId =
+            current.clientId ||
+            getPreferredClientId({
+              clientsList: clientsData,
+            });
+
+          if (current.clientId === nextClientId) {
+            return current;
+          }
+
+          return {
+            ...current,
+            clientId: nextClientId,
+          };
+        });
       } catch (loadError) {
         if (!isMounted) {
           return;
@@ -465,7 +534,43 @@ export function BudgetsPage() {
     }));
   }
 
-  async function handleCreateBudget(event: React.FormEvent<HTMLFormElement>) {
+  async function handleEditBudget(budgetId: string) {
+    try {
+      setIsLoadingBudgetId(budgetId);
+      setError(null);
+
+      const budget = await api<ApiBudgetDetail>(`/budgets/${budgetId}`);
+
+      setForm({
+        clientId: budget.clientId,
+        eventDate: budget.eventDate.split('T')[0] ?? '',
+        eventLocation: budget.eventLocation ?? '',
+        guestCount: String(budget.guestCount),
+        budgetType: budget.budgetType,
+        estimatedPrice: budget.estimatedPrice,
+        downPayment: budget.downPayment ?? '',
+        notes: budget.notes ?? '',
+        items: budget.items.length
+          ? budget.items.map((item) => ({
+              serviceId: item.serviceId,
+              quantity: String(item.quantity),
+              unitPrice: item.unitPrice ?? '',
+              notes: item.notes ?? '',
+            }))
+          : [createEmptyItem()],
+      });
+      setIsEditingBudgetId(budget.id);
+      setLastAutoEstimate('');
+      setOperationalExtra('0');
+      setDesiredMarginPercent('0');
+    } catch (loadError) {
+      setError('Nao foi possivel abrir esse orcamento para edicao agora.');
+    } finally {
+      setIsLoadingBudgetId(null);
+    }
+  }
+
+  async function handleSubmitBudget(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
@@ -481,33 +586,40 @@ export function BudgetsPage() {
           notes: item.notes || undefined,
         }));
 
-      const createdBudget = await api<ApiBudget>('/budgets', {
-        method: 'POST',
-        body: JSON.stringify({
-          clientId: form.clientId,
-          eventDate: form.eventDate,
-          eventLocation: form.eventLocation || undefined,
-          guestCount: Number(form.guestCount),
-          budgetType: form.budgetType,
-          estimatedPrice: form.estimatedPrice,
-          downPayment: form.downPayment || undefined,
-          notes: form.notes || undefined,
-          items: normalizedItems,
-        }),
-      });
+      const budgetPayload = {
+        clientId: form.clientId,
+        eventDate: form.eventDate,
+        eventLocation: form.eventLocation || undefined,
+        guestCount: Number(form.guestCount),
+        budgetType: form.budgetType,
+        estimatedPrice: form.estimatedPrice,
+        downPayment: form.downPayment || undefined,
+        notes: form.notes || undefined,
+        items: normalizedItems,
+      };
 
-      setBudgets((current) => [createdBudget, ...current]);
-      setForm((current) => ({
-        ...initialForm,
-        clientId: current.clientId,
-        budgetType: 'FULL_SERVICE',
-        items: [createEmptyItem()],
-      }));
-      setLastAutoEstimate('');
-      setOperationalExtra('0');
-      setDesiredMarginPercent('0');
+      const savedBudget = await api<ApiBudget>(
+        isEditingBudgetId ? `/budgets/${isEditingBudgetId}` : '/budgets',
+        {
+          method: isEditingBudgetId ? 'PATCH' : 'POST',
+          body: JSON.stringify(budgetPayload),
+        },
+      );
+
+      setBudgets((current) =>
+        isEditingBudgetId
+          ? current.map((budget) =>
+              budget.id === isEditingBudgetId ? savedBudget : budget,
+            )
+          : [savedBudget, ...current],
+      );
+      resetBudgetForm(form.clientId);
     } catch (submitError) {
-      setError('Nao foi possivel criar o orcamento agora.');
+      setError(
+        isEditingBudgetId
+          ? 'Nao foi possivel atualizar o orcamento agora.'
+          : 'Nao foi possivel criar o orcamento agora.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -533,6 +645,40 @@ export function BudgetsPage() {
       setError('Nao foi possivel atualizar o status desse orcamento agora.');
     } finally {
       setIsUpdatingStatusId(null);
+    }
+  }
+
+  async function handleConvertBudgetToEvent(budget: ApiBudget) {
+    try {
+      setIsConvertingBudgetId(budget.id);
+      setError(null);
+
+      const createdEvent = await api<ApiCreatedEvent>(
+        `/events/from-budget/${budget.id}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        },
+      );
+
+      setBudgets((current) =>
+        current.map((currentBudget) =>
+          currentBudget.id === budget.id
+            ? {
+                ...currentBudget,
+                status: 'APPROVED',
+                event: {
+                  id: createdEvent.id,
+                  status: createdEvent.status,
+                },
+              }
+            : currentBudget,
+        ),
+      );
+    } catch (convertError) {
+      setError('Nao foi possivel transformar esse orcamento em evento agora.');
+    } finally {
+      setIsConvertingBudgetId(null);
     }
   }
 
@@ -564,10 +710,14 @@ export function BudgetsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <DashboardSection
-          eyebrow="Novo orcamento"
-          title="Cadastro inicial da proposta"
+          eyebrow={isEditingBudgetId ? 'Editar orcamento' : 'Novo orcamento'}
+          title={
+            isEditingBudgetId
+              ? 'Ajuste a proposta sem montar tudo de novo'
+              : 'Cadastro inicial da proposta'
+          }
         >
-          <form className="grid gap-4" onSubmit={handleCreateBudget}>
+          <form className="grid gap-4" onSubmit={handleSubmitBudget}>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="rounded-[22px] border border-border bg-white px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -1011,8 +1161,21 @@ export function BudgetsPage() {
               disabled={isSubmitting || !form.clientId}
               className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSubmitting ? 'Salvando...' : 'Salvar orcamento'}
+              {isSubmitting
+                ? 'Salvando...'
+                : isEditingBudgetId
+                  ? 'Salvar alteracoes'
+                  : 'Salvar orcamento'}
             </button>
+            {isEditingBudgetId ? (
+              <button
+                type="button"
+                onClick={() => resetBudgetForm(form.clientId)}
+                className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+              >
+                Cancelar edicao
+              </button>
+            ) : null}
           </form>
         </DashboardSection>
 
@@ -1103,6 +1266,11 @@ export function BudgetsPage() {
                       >
                         {getBudgetStatusLabel(budget.status)}
                       </span>
+                      {budget.event ? (
+                        <span className="rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a]">
+                          Ja virou evento
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1143,6 +1311,34 @@ export function BudgetsPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  {budget.event ? (
+                    <Link
+                      href={`/eventos?eventId=${budget.event.id}`}
+                      className="rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a]"
+                    >
+                      Abrir evento
+                    </Link>
+                  ) : null}
+                  {!budget.event ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleConvertBudgetToEvent(budget)}
+                      disabled={isConvertingBudgetId === budget.id}
+                      className="rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isConvertingBudgetId === budget.id
+                        ? 'Virando evento...'
+                        : 'Virar evento'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void handleEditBudget(budget.id)}
+                    disabled={isLoadingBudgetId === budget.id}
+                    className="rounded-full border border-border bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isLoadingBudgetId === budget.id ? 'Abrindo...' : 'Editar'}
+                  </button>
                   {(
                     [
                       ['DRAFT', 'Rascunho'],

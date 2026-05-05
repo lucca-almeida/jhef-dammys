@@ -89,10 +89,13 @@ Ja esta funcionando:
 Ja esta funcionando:
 
 - criar orcamento
+- editar orcamento ja salvo sem precisar remontar do zero
 - listar orcamentos
 - buscar orcamentos
 - relacionar o orcamento com um cliente
 - adicionar itens do cardapio ao orcamento
+- transformar o orcamento em evento direto pela lista
+- abrir o evento certo direto a partir do orcamento quando ele ja foi fechado
 - calcular custo estimado para servico completo quando existir ficha tecnica
 - mostrar a composicao de ingredientes no custo estimado
 - aplicar extra operacional e margem para sugerir o valor do orcamento
@@ -138,6 +141,7 @@ Ja esta funcionando:
 - destaque visual de datas ocupadas
 - selecao de dia para ver os eventos agendados
 - leitura da agenda real a partir da API de eventos
+- atalho para abrir o evento certo direto da agenda
 
 ### Financeiro
 

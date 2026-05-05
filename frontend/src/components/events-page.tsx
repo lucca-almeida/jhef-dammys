@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -160,6 +161,7 @@ function getEventStatusTone(status: EventStatus) {
 }
 
 export function EventsPage() {
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [budgets, setBudgets] = useState<ApiBudget[]>([]);
   const [payments, setPayments] = useState<ApiPayment[]>([]);
@@ -172,6 +174,7 @@ export function EventsPage() {
   const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
   const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const preferredEventId = searchParams.get('eventId');
 
   useEffect(() => {
     let isMounted = true;
@@ -196,7 +199,16 @@ export function EventsPage() {
         setBudgets(budgetsData);
         setPayments(paymentsData);
         setCosts(costsData);
-        setSelectedEventId((current) => current || eventsData[0]?.id || '');
+        setSelectedEventId((current) => {
+          if (
+            preferredEventId &&
+            eventsData.some((event) => event.id === preferredEventId)
+          ) {
+            return preferredEventId;
+          }
+
+          return current || eventsData[0]?.id || '';
+        });
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar eventos e orcamentos da API.');
@@ -213,7 +225,7 @@ export function EventsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [preferredEventId]);
 
   useEffect(() => {
     let isMounted = true;

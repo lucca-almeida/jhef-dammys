@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -450,6 +451,15 @@ export function AgendaPage() {
                         {event._count.items}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/eventos?eventId=${event.id}`}
+                      className="rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:opacity-95"
+                    >
+                      Abrir evento
+                    </Link>
                   </div>
                 </div>
               </article>
