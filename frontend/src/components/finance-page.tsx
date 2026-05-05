@@ -152,6 +152,7 @@ export function FinancePage() {
   const [payments, setPayments] = useState<ApiPayment[]>([]);
   const [costs, setCosts] = useState<ApiCost[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<PaymentType>('DOWN_PAYMENT');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
   const [amount, setAmount] = useState('');
@@ -162,6 +163,16 @@ export function FinancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const preferredEventId = searchParams.get('eventId');
+
+  function resetPaymentForm(nextEventId?: string) {
+    setSelectedEventId(nextEventId ?? selectedEventId);
+    setEditingPaymentId(null);
+    setPaymentType('DOWN_PAYMENT');
+    setPaymentMethod('PIX');
+    setAmount('');
+    setPaidAt(new Date().toISOString().slice(0, 10));
+    setNotes('');
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -309,7 +320,17 @@ export function FinancePage() {
     ];
   }, [eventCards]);
 
-  async function handleCreatePayment(event: React.FormEvent<HTMLFormElement>) {
+  function handleEditPayment(payment: ApiPayment) {
+    setSelectedEventId(payment.eventId);
+    setEditingPaymentId(payment.id);
+    setPaymentType(payment.type);
+    setPaymentMethod(payment.method);
+    setAmount(payment.amount);
+    setPaidAt(payment.paidAt.slice(0, 10));
+    setNotes(payment.notes ?? '');
+  }
+
+  async function handleSubmitPayment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedEventId || !amount.trim()) {
@@ -321,25 +342,37 @@ export function FinancePage() {
       setIsSubmitting(true);
       setError(null);
 
-      const createdPayment = await api<ApiPayment>('/payments', {
-        method: 'POST',
-        body: JSON.stringify({
-          eventId: selectedEventId,
-          type: paymentType,
-          method: paymentMethod,
-          amount,
-          paidAt,
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const paymentPayload = {
+        eventId: selectedEventId,
+        type: paymentType,
+        method: paymentMethod,
+        amount,
+        paidAt,
+        notes: notes.trim() || undefined,
+      };
 
-      setPayments((current) => [createdPayment, ...current]);
-      setAmount('');
-      setNotes('');
-      setPaymentType('DOWN_PAYMENT');
-      setPaymentMethod('PIX');
+      const savedPayment = await api<ApiPayment>(
+        editingPaymentId ? `/payments/${editingPaymentId}` : '/payments',
+        {
+          method: editingPaymentId ? 'PATCH' : 'POST',
+          body: JSON.stringify(paymentPayload),
+        },
+      );
+
+      setPayments((current) =>
+        editingPaymentId
+          ? current.map((payment) =>
+              payment.id === editingPaymentId ? savedPayment : payment,
+            )
+          : [savedPayment, ...current],
+      );
+      resetPaymentForm(selectedEventId);
     } catch (submitError) {
-      setError('Nao foi possivel registrar esse pagamento agora.');
+      setError(
+        editingPaymentId
+          ? 'Nao foi possivel atualizar esse pagamento agora.'
+          : 'Nao foi possivel registrar esse pagamento agora.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -374,10 +407,16 @@ export function FinancePage() {
       <div className="grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
         <DashboardSection
           eyebrow="Novo pagamento"
-          title={selectedEvent ? selectedEvent.title : 'Escolha um evento'}
+          title={
+            editingPaymentId
+              ? 'Ajustar pagamento lancado'
+              : selectedEvent
+                ? selectedEvent.title
+                : 'Escolha um evento'
+          }
           action="Recebimentos"
         >
-          <form className="space-y-4" onSubmit={handleCreatePayment}>
+          <form className="space-y-4" onSubmit={handleSubmitPayment}>
             <label className="block rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Evento
@@ -569,8 +608,21 @@ export function FinancePage() {
               disabled={isSubmitting}
               className="w-full rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSubmitting ? 'Salvando pagamento...' : 'Registrar pagamento'}
+              {isSubmitting
+                ? 'Salvando pagamento...'
+                : editingPaymentId
+                  ? 'Salvar alteracoes'
+                  : 'Registrar pagamento'}
             </button>
+            {editingPaymentId ? (
+              <button
+                type="button"
+                onClick={() => resetPaymentForm(selectedEventId)}
+                className="w-full rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent/40"
+              >
+                Cancelar edicao
+              </button>
+            ) : null}
           </form>
         </DashboardSection>
 
@@ -734,7 +786,7 @@ export function FinancePage() {
               {payments.slice(0, 5).map((payment) => (
                 <div
                   key={payment.id}
-                  className="flex flex-col gap-2 rounded-[20px] border border-border px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-[20px] border border-border px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <p className="font-medium text-foreground">
@@ -746,9 +798,18 @@ export function FinancePage() {
                       {formatDate(payment.paidAt)}
                     </p>
                   </div>
-                  <p className="font-semibold text-foreground">
-                    {formatCurrency(payment.amount)}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="font-semibold text-foreground">
+                      {formatCurrency(payment.amount)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleEditPayment(payment)}
+                      className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                    >
+                      Editar
+                    </button>
+                  </div>
                 </div>
               ))}
 

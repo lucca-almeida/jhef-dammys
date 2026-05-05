@@ -148,6 +148,7 @@ Ja esta funcionando:
 Ja esta funcionando:
 
 - registro de pagamentos por evento
+- edicao rapida de pagamento ja lancado
 - controle de tipo e forma de pagamento
 - visao de valor fechado, recebido e saldo restante
 - leitura dos custos lancados para mostrar resultado atual
