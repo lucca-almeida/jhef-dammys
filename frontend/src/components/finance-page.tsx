@@ -44,6 +44,25 @@ type ApiPayment = {
   };
 };
 
+type ApiCost = {
+  id: string;
+  eventId: string;
+  category: string;
+  description: string;
+  amount: string;
+  spentAt: string;
+  notes: string | null;
+  event: {
+    id: string;
+    title: string;
+    eventDate: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  };
+};
+
 type EventFinancialCard = {
   id: string;
   title: string;
@@ -54,7 +73,10 @@ type EventFinancialCard = {
   finalPrice: number;
   downPayment: number;
   received: number;
+  costs: number;
   outstanding: number;
+  projectedProfit: number;
+  currentCashResult: number;
 };
 
 const paymentTypeOptions: { value: PaymentType; label: string }[] = [
@@ -126,6 +148,7 @@ function getPaymentMethodLabel(method: PaymentMethod) {
 export function FinancePage() {
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [payments, setPayments] = useState<ApiPayment[]>([]);
+  const [costs, setCosts] = useState<ApiCost[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [paymentType, setPaymentType] = useState<PaymentType>('DOWN_PAYMENT');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
@@ -145,9 +168,10 @@ export function FinancePage() {
         setIsLoading(true);
         setError(null);
 
-        const [eventsData, paymentsData] = await Promise.all([
+        const [eventsData, paymentsData, costsData] = await Promise.all([
           api<ApiEvent[]>('/events'),
           api<ApiPayment[]>('/payments'),
+          api<ApiCost[]>('/costs'),
         ]);
 
         if (!isMounted) {
@@ -156,6 +180,7 @@ export function FinancePage() {
 
         setEvents(eventsData);
         setPayments(paymentsData);
+        setCosts(costsData);
 
         setSelectedEventId((current) => current || eventsData[0]?.id || '');
       } catch (loadError) {
@@ -181,6 +206,9 @@ export function FinancePage() {
       const received = payments
         .filter((payment) => payment.eventId === event.id)
         .reduce((total, payment) => total + Number(payment.amount), 0);
+      const costsTotal = costs
+        .filter((cost) => cost.eventId === event.id)
+        .reduce((total, cost) => total + Number(cost.amount), 0);
 
       const finalPrice = Number(event.finalPrice);
       const downPayment = Number(event.downPayment ?? 0);
@@ -195,10 +223,13 @@ export function FinancePage() {
         finalPrice,
         downPayment,
         received,
+        costs: costsTotal,
         outstanding: Math.max(finalPrice - received, 0),
+        projectedProfit: finalPrice - costsTotal,
+        currentCashResult: received - costsTotal,
       };
     });
-  }, [events, payments]);
+  }, [costs, events, payments]);
 
   const filteredCards = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -225,10 +256,17 @@ export function FinancePage() {
     [payments, selectedEventId],
   );
 
+  const selectedEventCosts = useMemo(
+    () => costs.filter((cost) => cost.eventId === selectedEventId),
+    [costs, selectedEventId],
+  );
+
   const summary = useMemo(() => {
     const expected = eventCards.reduce((total, event) => total + event.finalPrice, 0);
     const received = eventCards.reduce((total, event) => total + event.received, 0);
+    const launchedCosts = eventCards.reduce((total, event) => total + event.costs, 0);
     const outstanding = Math.max(expected - received, 0);
+    const projectedProfit = expected - launchedCosts;
 
     return [
       {
@@ -240,6 +278,16 @@ export function FinancePage() {
         label: 'Recebido registrado',
         value: formatCurrency(received),
         note: 'Pagamentos lancados no sistema',
+      },
+      {
+        label: 'Custos lancados',
+        value: formatCurrency(launchedCosts),
+        note: 'Tudo que ja foi registrado como gasto',
+      },
+      {
+        label: 'Lucro projetado',
+        value: formatCurrency(projectedProfit),
+        note: 'Valor fechado menos os custos ja lancados',
       },
       {
         label: 'Ainda falta receber',
@@ -289,12 +337,12 @@ export function FinancePage() {
     <>
       <PageHeader
         eyebrow="Financeiro"
-        title="Recebimentos, pendencias e saldo por evento"
-        description="Essa area comeca a virar o controle do caixa operacional: quanto entrou, quanto ainda falta receber e quais eventos estao mais abertos financeiramente."
+        title="Recebimentos, custos e resultado por evento"
+        description="Essa area junta o que entrou, o que ja foi gasto e o quanto ainda falta receber para ele finalmente enxergar o resultado real de cada trabalho."
         actions={['Registrar recebimento', 'Ver pendencias', 'Filtrar quitados']}
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-4">
         {summary.map((item) => (
           <article
             key={item.label}
@@ -455,6 +503,52 @@ export function FinancePage() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custos lancados
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(
+                        selectedEventCosts.reduce(
+                          (total, cost) => total + Number(cost.amount),
+                          0,
+                        ),
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Resultado atual
+                    </p>
+                    <p
+                      className={`mt-2 font-medium ${
+                        selectedEventPayments.reduce(
+                          (total, payment) => total + Number(payment.amount),
+                          0,
+                        ) -
+                          selectedEventCosts.reduce(
+                            (total, cost) => total + Number(cost.amount),
+                            0,
+                          ) >=
+                        0
+                          ? 'text-[#2d6a3a]'
+                          : 'text-[#8f4242]'
+                      }`}
+                    >
+                      {formatCurrency(
+                        selectedEventPayments.reduce(
+                          (total, payment) => total + Number(payment.amount),
+                          0,
+                        ) -
+                          selectedEventCosts.reduce(
+                            (total, cost) => total + Number(cost.amount),
+                            0,
+                          ),
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : null}
 
@@ -469,7 +563,7 @@ export function FinancePage() {
         </DashboardSection>
 
         <DashboardSection
-          eyebrow="Saldo por evento"
+          eyebrow="Resultado por evento"
           title={isLoading ? 'Carregando financeiro...' : `${filteredCards.length} evento(s) monitorados`}
           action="Resumo"
         >
@@ -533,7 +627,7 @@ export function FinancePage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-4 lg:w-[520px] lg:text-right">
+                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-6 lg:w-[760px] lg:text-right">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Valor fechado
@@ -562,6 +656,14 @@ export function FinancePage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Custos
+                      </p>
+                      <p className="mt-2 font-medium text-foreground">
+                        {formatCurrency(card.costs)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Falta receber
                       </p>
                       <p
@@ -570,6 +672,34 @@ export function FinancePage() {
                         }`}
                       >
                         {formatCurrency(card.outstanding)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Resultado atual
+                      </p>
+                      <p
+                        className={`mt-2 font-medium ${
+                          card.currentCashResult >= 0
+                            ? 'text-[#2d6a3a]'
+                            : 'text-[#8f4242]'
+                        }`}
+                      >
+                        {formatCurrency(card.currentCashResult)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Lucro projetado
+                      </p>
+                      <p
+                        className={`mt-2 font-medium ${
+                          card.projectedProfit >= 0
+                            ? 'text-[#2d6a3a]'
+                            : 'text-[#8f4242]'
+                        }`}
+                      >
+                        {formatCurrency(card.projectedProfit)}
                       </p>
                     </div>
                   </div>

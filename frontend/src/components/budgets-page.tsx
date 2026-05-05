@@ -23,6 +23,17 @@ type ApiService = {
   basePrice: string | null;
   isActive: boolean;
   estimatedCostPerPerson: string | null;
+  recipeItems?: Array<{
+    id: string;
+    quantityPerPerson: string;
+    notes: string | null;
+    product: {
+      id: string;
+      name: string;
+      unit: string;
+      currentCost: string;
+    };
+  }>;
 };
 
 type BudgetType = 'LABOR_ONLY' | 'FULL_SERVICE';
@@ -99,6 +110,15 @@ const serviceNotes = [
   'Deixar os itens no orcamento ajuda a proposta a virar evento sem retrabalho.',
 ];
 
+type IngredientBreakdownItem = {
+  productId: string;
+  name: string;
+  unit: string;
+  currentCost: number;
+  totalQuantity: number;
+  totalCost: number;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
@@ -157,8 +177,11 @@ export function BudgetsPage() {
   const [form, setForm] = useState<BudgetForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdatingStatusId, setIsUpdatingStatusId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastAutoEstimate, setLastAutoEstimate] = useState('');
+  const [operationalExtra, setOperationalExtra] = useState('0');
+  const [desiredMarginPercent, setDesiredMarginPercent] = useState('0');
 
   useEffect(() => {
     let isMounted = true;
@@ -276,6 +299,59 @@ export function BudgetsPage() {
     }, 0);
   }, [activeServices, form.budgetType, form.guestCount, form.items]);
 
+  const ingredientBreakdown = useMemo<IngredientBreakdownItem[]>(() => {
+    const guestCount = Number(form.guestCount);
+
+    if (!guestCount || guestCount <= 0 || form.budgetType !== 'FULL_SERVICE') {
+      return [];
+    }
+
+    const breakdownMap = new Map<string, IngredientBreakdownItem>();
+
+    form.items.forEach((item) => {
+      if (!item.serviceId) {
+        return;
+      }
+
+      const service = activeServices.find(
+        (serviceOption) => serviceOption.id === item.serviceId,
+      );
+
+      if (!service?.recipeItems?.length) {
+        return;
+      }
+
+      const itemQuantity = Number(item.quantity) || 1;
+
+      service.recipeItems.forEach((recipeItem) => {
+        const quantityPerPerson = Number(recipeItem.quantityPerPerson);
+        const currentCost = Number(recipeItem.product.currentCost);
+        const totalQuantity = quantityPerPerson * guestCount * itemQuantity;
+        const totalCost = totalQuantity * currentCost;
+        const existing = breakdownMap.get(recipeItem.product.id);
+
+        if (existing) {
+          existing.totalQuantity += totalQuantity;
+          existing.totalCost += totalCost;
+          return;
+        }
+
+        breakdownMap.set(recipeItem.product.id, {
+          productId: recipeItem.product.id,
+          name: recipeItem.product.name,
+          unit: recipeItem.product.unit,
+          currentCost,
+          totalQuantity,
+          totalCost,
+        });
+      });
+    });
+
+    return Array.from(breakdownMap.values()).sort(
+      (left, right) => right.totalCost - left.totalCost,
+    );
+  }, [activeServices, form.budgetType, form.guestCount, form.items]);
+
   const servicesWithoutRecipeCount = useMemo(
     () =>
       form.items.filter((item) => {
@@ -293,9 +369,29 @@ export function BudgetsPage() {
   );
 
   const currentEstimatedPrice = Number(form.estimatedPrice || 0);
+  const operationalExtraValue = Number(operationalExtra || 0);
+  const desiredMarginValue = Number(desiredMarginPercent || 0);
+  const suggestedQuoteValue = useMemo(() => {
+    if (form.budgetType !== 'FULL_SERVICE') {
+      return 0;
+    }
+
+    const subtotal = ingredientCostEstimate + operationalExtraValue;
+
+    if (subtotal <= 0) {
+      return 0;
+    }
+
+    return subtotal * (1 + desiredMarginValue / 100);
+  }, [
+    desiredMarginValue,
+    form.budgetType,
+    ingredientCostEstimate,
+    operationalExtraValue,
+  ]);
   const estimatedMargin =
     form.budgetType === 'FULL_SERVICE'
-      ? currentEstimatedPrice - ingredientCostEstimate
+      ? currentEstimatedPrice - ingredientCostEstimate - operationalExtraValue
       : 0;
 
   useEffect(() => {
@@ -303,11 +399,11 @@ export function BudgetsPage() {
       return;
     }
 
-    if (!ingredientCostEstimate) {
+    if (!suggestedQuoteValue) {
       return;
     }
 
-    const nextValue = ingredientCostEstimate.toFixed(2);
+    const nextValue = suggestedQuoteValue.toFixed(2);
 
     setForm((current) => {
       if (
@@ -328,7 +424,7 @@ export function BudgetsPage() {
     });
 
     setLastAutoEstimate(nextValue);
-  }, [form.budgetType, ingredientCostEstimate, lastAutoEstimate]);
+  }, [form.budgetType, lastAutoEstimate, suggestedQuoteValue]);
 
   function updateFormItem(
     index: number,
@@ -399,10 +495,35 @@ export function BudgetsPage() {
         items: [createEmptyItem()],
       }));
       setLastAutoEstimate('');
+      setOperationalExtra('0');
+      setDesiredMarginPercent('0');
     } catch (submitError) {
       setError('Nao foi possivel criar o orcamento agora.');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleUpdateBudgetStatus(
+    budgetId: string,
+    status: BudgetStatus,
+  ) {
+    try {
+      setIsUpdatingStatusId(budgetId);
+      setError(null);
+
+      const updatedBudget = await api<ApiBudget>(`/budgets/${budgetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+
+      setBudgets((current) =>
+        current.map((budget) => (budget.id === budgetId ? updatedBudget : budget)),
+      );
+    } catch (updateError) {
+      setError('Nao foi possivel atualizar o status desse orcamento agora.');
+    } finally {
+      setIsUpdatingStatusId(null);
     }
   }
 
@@ -617,6 +738,22 @@ export function BudgetsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Extra operacional
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(operationalExtraValue)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Sugestao de orcamento
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(suggestedQuoteValue)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Valor para o cliente
                     </p>
                     <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
@@ -639,6 +776,40 @@ export function BudgetsPage() {
               ) : null}
 
               {form.budgetType === 'FULL_SERVICE' ? (
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  <label className="rounded-[22px] border border-[#ead9cb] bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Extra operacional
+                    </p>
+                    <input
+                      value={operationalExtra}
+                      onChange={(event) => setOperationalExtra(event.target.value)}
+                      placeholder="Ex: 300"
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                    />
+                    <p className="mt-2 text-xs leading-5 text-muted">
+                      Aqui ele pode somar gas, gasolina, ajudante ou alguma folga operacional.
+                    </p>
+                  </label>
+
+                  <label className="rounded-[22px] border border-[#ead9cb] bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Margem desejada (%)
+                    </p>
+                    <input
+                      value={desiredMarginPercent}
+                      onChange={(event) => setDesiredMarginPercent(event.target.value)}
+                      placeholder="Ex: 25"
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                    />
+                    <p className="mt-2 text-xs leading-5 text-muted">
+                      A sugestao usa `ingredientes + extra operacional` e aplica essa margem por cima.
+                    </p>
+                  </label>
+                </div>
+              ) : null}
+
+              {form.budgetType === 'FULL_SERVICE' ? (
                 <div className="mt-3 rounded-[22px] border border-[#ead9cb] bg-white px-4 py-4 text-sm leading-6 text-muted">
                   A conta usa `quantidade de pessoas x custo por pessoa` de cada
                   servico que ja tenha ficha tecnica montada.
@@ -650,9 +821,80 @@ export function BudgetsPage() {
                   ) : null}
                   {ingredientCostEstimate > 0 && estimatedMargin < 0 ? (
                     <p className="mt-2 text-[#8f4242]">
-                      O valor estimado esta abaixo do custo calculado dos ingredientes.
+                      O valor estimado esta abaixo do custo dos ingredientes somado ao operacional informado.
                     </p>
                   ) : null}
+                </div>
+              ) : null}
+
+              {form.budgetType === 'FULL_SERVICE' && ingredientBreakdown.length > 0 ? (
+                <div className="mt-4 rounded-[22px] border border-border bg-white p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Composicao do custo
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted">
+                        Esse bloco ajuda ele a entender quanto de cada ingrediente entra na conta antes de mandar o valor.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextValue = suggestedQuoteValue.toFixed(2);
+                        setForm((current) => ({
+                          ...current,
+                          estimatedPrice: nextValue,
+                        }));
+                        setLastAutoEstimate(nextValue);
+                      }}
+                      className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                    >
+                      Usar sugestao no valor
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {ingredientBreakdown.map((ingredient) => (
+                      <div
+                        key={ingredient.productId}
+                        className="grid gap-3 rounded-[18px] border border-border px-4 py-3 text-sm text-muted md:grid-cols-[1.1fr_140px_140px_160px]"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">{ingredient.name}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted">
+                            {formatCurrency(ingredient.currentCost)} por {ingredient.unit}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                            Quantidade total
+                          </p>
+                          <p className="mt-2 font-medium text-foreground">
+                            {ingredient.totalQuantity.toFixed(2)} {ingredient.unit}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                            Custo total
+                          </p>
+                          <p className="mt-2 font-medium text-foreground">
+                            {formatCurrency(ingredient.totalCost)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                            Peso no orcamento
+                          </p>
+                          <p className="mt-2 font-medium text-foreground">
+                            {ingredientCostEstimate > 0
+                              ? `${((ingredient.totalCost / ingredientCostEstimate) * 100).toFixed(1)}%`
+                              : '0%'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 
@@ -889,6 +1131,35 @@ export function BudgetsPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(
+                    [
+                      ['DRAFT', 'Rascunho'],
+                      ['SENT', 'Enviado'],
+                      ['APPROVED', 'Aprovado'],
+                      ['REJECTED', 'Recusado'],
+                    ] as Array<[BudgetStatus, string]>
+                  ).map(([statusValue, label]) => (
+                    <button
+                      key={`${budget.id}-${statusValue}`}
+                      type="button"
+                      onClick={() => void handleUpdateBudgetStatus(budget.id, statusValue)}
+                      disabled={
+                        isUpdatingStatusId === budget.id || budget.status === statusValue
+                      }
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                        budget.status === statusValue
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-border bg-white text-foreground hover:border-accent/40'
+                      } disabled:cursor-not-allowed disabled:opacity-70`}
+                    >
+                      {isUpdatingStatusId === budget.id && budget.status !== statusValue
+                        ? 'Atualizando...'
+                        : label}
+                    </button>
+                  ))}
                 </div>
               </article>
             ))}

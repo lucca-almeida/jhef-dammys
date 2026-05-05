@@ -1,122 +1,99 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardSection } from '@/components/dashboard-section';
 import { PageHeader } from '@/components/page-header';
+import { api } from '@/lib/api';
 
-const summaryCards = [
-  {
-    label: 'Eventos no mes',
-    value: '18',
-    note: '+4 confirmados nesta semana',
-    tone: 'warm',
-  },
-  {
-    label: 'A receber',
-    value: 'R$ 7.850',
-    note: '6 sinais pendentes de confirmacao',
-    tone: 'light',
-  },
-  {
-    label: 'Lucro estimado',
-    value: 'R$ 5.420',
-    note: 'Margem media de 31% nos fechados',
-    tone: 'dark',
-  },
-  {
-    label: 'Orcamentos abertos',
-    value: '11',
-    note: '3 precisam de retorno hoje',
-    tone: 'light',
-  },
-];
+type EventStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELED';
+type BudgetStatus = 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED' | 'CANCELED';
 
-const todayAgenda = [
-  {
-    time: '08:30',
-    title: 'Compra de carnes e reposicao de saladas',
-    tag: 'Operacional',
-  },
-  {
-    time: '11:00',
-    title: 'Responder orcamento de casamento - 120 pessoas',
-    tag: 'Comercial',
-  },
-  {
-    time: '15:30',
-    title: 'Conferir ajudantes do evento de sabado',
-    tag: 'Equipe',
-  },
-  {
-    time: '19:00',
-    title: 'Fechamento financeiro do evento corporativo',
-    tag: 'Financeiro',
-  },
-];
+type ApiEvent = {
+  id: string;
+  title: string;
+  eventDate: string;
+  eventLocation: string | null;
+  guestCount: number;
+  finalPrice: string;
+  status: EventStatus;
+  client: {
+    id: string;
+    name: string;
+  };
+};
 
-const nextEvents = [
-  {
-    date: '03 mai',
-    title: 'Aniversario - 70 pessoas',
-    place: 'Chacara Santa Luzia',
-    status: 'Confirmado',
-    amount: 'R$ 3.400',
-  },
-  {
-    date: '10 mai',
-    title: 'Casamento - 120 pessoas',
-    place: 'Espaco Recanto Verde',
-    status: 'Sinal pago',
-    amount: 'R$ 9.800',
-  },
-  {
-    date: '17 mai',
-    title: 'Corporativo - 45 pessoas',
-    place: 'Centro da cidade',
-    status: 'Aguardando contrato',
-    amount: 'R$ 2.950',
-  },
-];
+type ApiBudget = {
+  id: string;
+  eventDate: string;
+  eventLocation: string | null;
+  guestCount: number;
+  estimatedPrice: string;
+  status: BudgetStatus;
+  client: {
+    id: string;
+    name: string;
+  };
+};
 
-const pendingBudgets = [
-  {
-    client: 'Mariana e Felipe',
-    people: '120 pessoas',
-    type: 'Servico completo',
-    deadline: 'Responder hoje',
-  },
-  {
-    client: 'Carlos Henrique',
-    people: '35 pessoas',
-    type: 'Mao de obra',
-    deadline: 'Follow-up amanha',
-  },
-  {
-    client: 'Condominio Primavera',
-    people: '80 pessoas',
-    type: 'Servico completo',
-    deadline: 'Aguardando retorno',
-  },
-];
+type ApiPayment = {
+  id: string;
+  eventId: string;
+  type: 'DOWN_PAYMENT' | 'PARTIAL' | 'FINAL';
+  method: 'PIX' | 'CASH' | 'CARD' | 'TRANSFER' | 'OTHER';
+  amount: string;
+  paidAt: string;
+  event: {
+    id: string;
+    title: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  };
+};
 
-const costBreakdown = [
-  { name: 'Ingredientes', value: 'R$ 2.180', width: '74%' },
-  { name: 'Ajudantes', value: 'R$ 940', width: '52%' },
-  { name: 'Gas e carvao', value: 'R$ 560', width: '36%' },
-  { name: 'Gasolina', value: 'R$ 210', width: '18%' },
-];
+type ApiCost = {
+  id: string;
+  eventId: string;
+  category: string;
+  description: string;
+  amount: string;
+  spentAt: string;
+  event: {
+    id: string;
+    title: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  };
+};
 
-const stockAlerts = [
-  { item: 'Carvao', level: 'Baixo', note: 'restam 6 sacos' },
-  { item: 'Chimichurri', level: 'Critico', note: '1 pote fechado' },
-  { item: 'Gas', level: 'Atencao', note: 'prever reposicao ate sexta' },
-];
+type ApiProduct = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  stockQuantity: string | null;
+  minimumStock: string | null;
+  isActive: boolean;
+};
 
-const recentActivity = [
-  'Evento "Aniversario da Luiza" marcado como confirmado.',
-  'Compra de arroz, alho e oleo registrada no estoque.',
-  'Sinal de R$ 1.500 recebido via Pix.',
-  'Novo cliente cadastrado: Buffet Corporativo Atlas.',
-];
+function formatCurrency(value: number | string) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Number(value));
+}
 
-function getCardToneClasses(tone: string) {
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  }).format(new Date(value));
+}
+
+function getCardToneClasses(tone: 'warm' | 'light' | 'dark') {
   if (tone === 'warm') {
     return 'bg-[#fff3e7]';
   }
@@ -128,15 +105,229 @@ function getCardToneClasses(tone: string) {
   return 'bg-panel';
 }
 
+function getEventStatusLabel(status: EventStatus) {
+  const labels: Record<EventStatus, string> = {
+    PENDING: 'Pendente',
+    CONFIRMED: 'Confirmado',
+    COMPLETED: 'Concluido',
+    CANCELED: 'Cancelado',
+  };
+
+  return labels[status];
+}
+
 export default function DashboardPage() {
+  const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [budgets, setBudgets] = useState<ApiBudget[]>([]);
+  const [payments, setPayments] = useState<ApiPayment[]>([]);
+  const [costs, setCosts] = useState<ApiCost[]>([]);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [eventsData, budgetsData, paymentsData, costsData, productsData] =
+          await Promise.all([
+            api<ApiEvent[]>('/events'),
+            api<ApiBudget[]>('/budgets'),
+            api<ApiPayment[]>('/payments'),
+            api<ApiCost[]>('/costs'),
+            api<ApiProduct[]>('/products?onlyActive=true'),
+          ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setEvents(eventsData);
+        setBudgets(budgetsData);
+        setPayments(paymentsData);
+        setCosts(costsData);
+        setProducts(productsData);
+      } catch (loadError) {
+        if (isMounted) {
+          setError('Nao foi possivel carregar os dados reais da dashboard.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const financialByEvent = useMemo(() => {
+    return events.map((event) => {
+      const received = payments
+        .filter((payment) => payment.eventId === event.id)
+        .reduce((total, payment) => total + Number(payment.amount), 0);
+      const eventCosts = costs
+        .filter((cost) => cost.eventId === event.id)
+        .reduce((total, cost) => total + Number(cost.amount), 0);
+      const finalPrice = Number(event.finalPrice);
+
+      return {
+        ...event,
+        received,
+        eventCosts,
+        outstanding: Math.max(finalPrice - received, 0),
+        projectedProfit: finalPrice - eventCosts,
+      };
+    });
+  }, [costs, events, payments]);
+
+  const summaryCards = useMemo(() => {
+    const confirmedThisWeek = events.filter((event) => event.status === 'CONFIRMED').length;
+    const toReceive = financialByEvent.reduce(
+      (total, event) => total + event.outstanding,
+      0,
+    );
+    const projectedProfit = financialByEvent.reduce(
+      (total, event) => total + event.projectedProfit,
+      0,
+    );
+    const openBudgets = budgets.filter(
+      (budget) => !['APPROVED', 'REJECTED', 'CANCELED'].includes(budget.status),
+    ).length;
+
+    return [
+      {
+        label: 'Eventos na base',
+        value: String(events.length),
+        note: `${confirmedThisWeek} confirmados no momento`,
+        tone: 'warm' as const,
+      },
+      {
+        label: 'A receber',
+        value: formatCurrency(toReceive),
+        note: 'Saldo aberto dos eventos ja cadastrados',
+        tone: 'light' as const,
+      },
+      {
+        label: 'Lucro projetado',
+        value: formatCurrency(projectedProfit),
+        note: 'Valor fechado menos custos ja lancados',
+        tone: 'dark' as const,
+      },
+      {
+        label: 'Orcamentos abertos',
+        value: String(openBudgets),
+        note: 'Negociacoes ainda em andamento',
+        tone: 'light' as const,
+      },
+    ];
+  }, [budgets, events, financialByEvent]);
+
+  const todayAgenda = useMemo(() => {
+    return events
+      .filter((event) => event.eventDate.slice(0, 10) === todayKey)
+      .sort(
+        (left, right) =>
+          new Date(left.eventDate).getTime() - new Date(right.eventDate).getTime(),
+      )
+      .slice(0, 5);
+  }, [events, todayKey]);
+
+  const nextEvents = useMemo(() => {
+    return financialByEvent
+      .filter((event) => new Date(event.eventDate).getTime() >= new Date(todayKey).getTime())
+      .sort(
+        (left, right) =>
+          new Date(left.eventDate).getTime() - new Date(right.eventDate).getTime(),
+      )
+      .slice(0, 4);
+  }, [financialByEvent, todayKey]);
+
+  const pendingBudgets = useMemo(() => {
+    return budgets
+      .filter((budget) => !['APPROVED', 'REJECTED', 'CANCELED'].includes(budget.status))
+      .sort(
+        (left, right) =>
+          new Date(left.eventDate).getTime() - new Date(right.eventDate).getTime(),
+      )
+      .slice(0, 4);
+  }, [budgets]);
+
+  const costBreakdown = useMemo(() => {
+    const grouped = costs.reduce<Record<string, number>>((accumulator, cost) => {
+      accumulator[cost.category] = (accumulator[cost.category] ?? 0) + Number(cost.amount);
+      return accumulator;
+    }, {});
+
+    const total = Object.values(grouped).reduce((sum, value) => sum + value, 0);
+
+    return Object.entries(grouped)
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 4)
+      .map(([name, value]) => ({
+        name,
+        value: formatCurrency(value),
+        width: total > 0 ? `${Math.max((value / total) * 100, 8)}%` : '8%',
+      }));
+  }, [costs]);
+
+  const stockAlerts = useMemo(() => {
+    return products
+      .filter((product) => {
+        const stock = Number(product.stockQuantity ?? 0);
+        const minimum = Number(product.minimumStock ?? 0);
+        return minimum > 0 && stock <= minimum;
+      })
+      .slice(0, 4)
+      .map((product) => ({
+        item: product.name,
+        level:
+          Number(product.stockQuantity ?? 0) === 0
+            ? 'Critico'
+            : Number(product.stockQuantity ?? 0) <= Number(product.minimumStock ?? 0) / 2
+              ? 'Baixo'
+              : 'Atencao',
+        note: `restam ${Number(product.stockQuantity ?? 0).toFixed(2)} ${product.unit}`,
+      }));
+  }, [products]);
+
+  const recentActivity = useMemo(() => {
+    const paymentEntries = payments.slice(0, 2).map(
+      (payment) =>
+        `${payment.event.client.name} registrou ${formatCurrency(payment.amount)} via ${payment.method.toLowerCase()}.`,
+    );
+    const costEntries = costs.slice(0, 2).map(
+      (cost) =>
+        `${cost.event.client.name} teve custo de ${formatCurrency(cost.amount)} em ${cost.category}.`,
+    );
+
+    return [...paymentEntries, ...costEntries].slice(0, 4);
+  }, [costs, payments]);
+
   return (
     <>
       <PageHeader
         eyebrow="Dashboard operacional"
         title="Visao real do negocio em um unico painel"
-        description="Uma dashboard pensada para o uso do dia a dia: compromissos, eventos proximos, orcamentos abertos, custos, estoque e atividade recente."
+        description="Um painel de entrada para ele bater o olho no que vai acontecer, no que falta receber e em como os eventos estao se comportando financeiramente."
         actions={['Novo cliente', 'Novo orcamento', 'Novo evento', 'Lancar custo']}
       />
+
+      {error ? (
+        <div className="rounded-[24px] border border-[#e4b7a0] bg-[#fff1e8] px-5 py-4 text-sm text-[#8a4c30]">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((item) => (
@@ -154,7 +345,7 @@ export default function DashboardPage() {
               {item.label}
             </p>
             <p className="mt-4 text-3xl font-semibold tracking-tight">
-              {item.value}
+              {isLoading ? '...' : item.value}
             </p>
             <p
               className={`mt-2 text-sm leading-6 ${
@@ -170,41 +361,51 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <DashboardSection
           eyebrow="Agenda do dia"
-          title="Compromissos e rotina de hoje"
+          title="Compromissos e eventos de hoje"
           action="Abrir agenda"
         >
           <div className="space-y-4">
             {todayAgenda.map((item) => (
               <article
-                key={`${item.time}-${item.title}`}
+                key={`${item.id}-${item.eventDate}`}
                 className="grid gap-4 rounded-[24px] border border-border bg-white px-4 py-4 sm:grid-cols-[88px_1fr_auto]"
               >
                 <div className="rounded-2xl bg-accent-soft px-3 py-4 text-center text-accent">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]">
-                    Hora
+                    Data
                   </p>
-                  <p className="mt-2 text-xl font-semibold">{item.time}</p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {formatDate(item.eventDate)}
+                  </p>
                 </div>
 
                 <div>
-                  <h4 className="text-lg font-semibold tracking-tight">
-                    {item.title}
-                  </h4>
+                  <h4 className="text-lg font-semibold tracking-tight">{item.title}</h4>
+                  <p className="mt-2 text-sm leading-6 text-muted">
+                    {item.client.name}
+                    {item.eventLocation ? ` - ${item.eventLocation}` : ''}
+                  </p>
                 </div>
 
                 <div className="flex items-start justify-start sm:justify-end">
                   <span className="rounded-full border border-accent/20 bg-accent-soft px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-                    {item.tag}
+                    {getEventStatusLabel(item.status)}
                   </span>
                 </div>
               </article>
             ))}
+
+            {!isLoading && todayAgenda.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+                Nenhum evento marcado para hoje.
+              </div>
+            ) : null}
           </div>
         </DashboardSection>
 
         <DashboardSection
           eyebrow="Atividade recente"
-          title="O que aconteceu por ultimo"
+          title="Ultimos sinais do sistema"
         >
           <div className="space-y-3">
             {recentActivity.map((entry) => (
@@ -215,6 +416,12 @@ export default function DashboardPage() {
                 {entry}
               </div>
             ))}
+
+            {!isLoading && recentActivity.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-white px-4 py-6 text-sm leading-6 text-muted">
+                Ainda nao ha atividade suficiente para preencher esse bloco.
+              </div>
+            ) : null}
           </div>
         </DashboardSection>
       </div>
@@ -223,12 +430,12 @@ export default function DashboardPage() {
         <DashboardSection
           eyebrow="Proximos eventos"
           title="Agenda prioritaria"
-          action="Ver todos"
+          action="Ver eventos"
         >
           <div className="space-y-4">
             {nextEvents.map((event) => (
               <article
-                key={`${event.title}-${event.date}`}
+                key={`${event.id}-${event.eventDate}`}
                 className="grid gap-4 rounded-[24px] border border-border bg-white px-4 py-4 lg:grid-cols-[84px_1fr_auto]"
               >
                 <div className="rounded-2xl bg-[#f7efe8] px-3 py-4 text-center">
@@ -236,25 +443,24 @@ export default function DashboardPage() {
                     Data
                   </p>
                   <p className="mt-2 text-xl font-semibold text-foreground">
-                    {event.date}
+                    {formatDate(event.eventDate)}
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="text-lg font-semibold tracking-tight">
-                    {event.title}
-                  </h4>
+                  <h4 className="text-lg font-semibold tracking-tight">{event.title}</h4>
                   <p className="mt-2 text-sm leading-6 text-muted">
-                    {event.place}
+                    {event.client.name}
+                    {event.eventLocation ? ` - ${event.eventLocation}` : ''}
                   </p>
                 </div>
 
                 <div className="flex flex-col items-start gap-3 lg:items-end">
                   <span className="rounded-full border border-accent/20 bg-accent-soft px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-                    {event.status}
+                    {getEventStatusLabel(event.status)}
                   </span>
                   <span className="text-sm font-semibold text-foreground">
-                    {event.amount}
+                    {formatCurrency(event.finalPrice)}
                   </span>
                 </div>
               </article>
@@ -270,22 +476,26 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {pendingBudgets.map((budget) => (
               <article
-                key={budget.client}
+                key={budget.id}
                 className="rounded-[24px] border border-border bg-white px-4 py-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="text-lg font-semibold tracking-tight">
-                      {budget.client}
+                      {budget.client.name}
                     </h4>
                     <p className="mt-2 text-sm leading-6 text-muted">
-                      {budget.people} · {budget.type}
+                      {budget.guestCount} pessoas
+                      {budget.eventLocation ? ` - ${budget.eventLocation}` : ''}
                     </p>
                   </div>
                   <span className="rounded-full bg-[#f6ede7] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-                    {budget.deadline}
+                    {formatDate(budget.eventDate)}
                   </span>
                 </div>
+                <p className="mt-3 text-sm font-medium text-foreground">
+                  {formatCurrency(budget.estimatedPrice)}
+                </p>
               </article>
             ))}
           </div>
@@ -295,7 +505,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <DashboardSection
           eyebrow="Resumo de custos"
-          title="Composicao do gasto dos eventos"
+          title="Composicao real do gasto"
         >
           <div className="space-y-4">
             {costBreakdown.map((item) => (
@@ -312,13 +522,19 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
+
+            {!isLoading && costBreakdown.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+                Ainda nao existem custos suficientes para montar esse resumo.
+              </div>
+            ) : null}
           </div>
         </DashboardSection>
 
         <DashboardSection
           eyebrow="Estoque"
           title="Itens que pedem atencao"
-          action="Ver estoque"
+          action="Ver produtos"
         >
           <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
             {stockAlerts.map((alert) => (
@@ -337,6 +553,12 @@ export default function DashboardPage() {
                 <p className="mt-3 text-sm leading-6 text-muted">{alert.note}</p>
               </article>
             ))}
+
+            {!isLoading && stockAlerts.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
+                Nenhum produto em alerta agora.
+              </div>
+            ) : null}
           </div>
         </DashboardSection>
       </div>

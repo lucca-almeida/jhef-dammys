@@ -60,6 +60,25 @@ type ApiBudget = {
   };
 };
 
+type ApiPayment = {
+  id: string;
+  eventId: string;
+  amount: string;
+};
+
+type ApiCost = {
+  id: string;
+  eventId: string;
+  amount: string;
+};
+
+type EventCard = ApiEvent & {
+  received: number;
+  costs: number;
+  outstanding: number;
+  projectedProfit: number;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
@@ -113,6 +132,8 @@ function getEventStatusTone(status: EventStatus) {
 export function EventsPage() {
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [budgets, setBudgets] = useState<ApiBudget[]>([]);
+  const [payments, setPayments] = useState<ApiPayment[]>([]);
+  const [costs, setCosts] = useState<ApiCost[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
@@ -127,9 +148,11 @@ export function EventsPage() {
         setIsLoading(true);
         setError(null);
 
-        const [eventsData, budgetsData] = await Promise.all([
+        const [eventsData, budgetsData, paymentsData, costsData] = await Promise.all([
           api<ApiEvent[]>('/events'),
           api<ApiBudget[]>('/budgets'),
+          api<ApiPayment[]>('/payments'),
+          api<ApiCost[]>('/costs'),
         ]);
 
         if (!isMounted) {
@@ -138,6 +161,8 @@ export function EventsPage() {
 
         setEvents(eventsData);
         setBudgets(budgetsData);
+        setPayments(paymentsData);
+        setCosts(costsData);
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar eventos e orcamentos da API.');
@@ -168,13 +193,31 @@ export function EventsPage() {
   );
 
   const filteredEvents = useMemo(() => {
+    const enrichedEvents: EventCard[] = events.map((event) => {
+      const received = payments
+        .filter((payment) => payment.eventId === event.id)
+        .reduce((total, payment) => total + Number(payment.amount), 0);
+      const eventCosts = costs
+        .filter((costItem) => costItem.eventId === event.id)
+        .reduce((total, costItem) => total + Number(costItem.amount), 0);
+      const finalPrice = Number(event.finalPrice);
+
+      return {
+        ...event,
+        received,
+        costs: eventCosts,
+        outstanding: Math.max(finalPrice - received, 0),
+        projectedProfit: finalPrice - eventCosts,
+      };
+    });
+
     const normalizedSearch = search.trim().toLowerCase();
 
     if (!normalizedSearch) {
-      return events;
+      return enrichedEvents;
     }
 
-    return events.filter((event) =>
+    return enrichedEvents.filter((event) =>
       [
         event.title,
         event.client.name,
@@ -186,11 +229,15 @@ export function EventsPage() {
         .toLowerCase()
         .includes(normalizedSearch),
     );
-  }, [events, search]);
+  }, [costs, events, payments, search]);
 
   const summary = useMemo(() => {
     const confirmed = events.filter((event) => event.status === 'CONFIRMED').length;
     const completed = events.filter((event) => event.status === 'COMPLETED').length;
+    const totalProjectedProfit = filteredEvents.reduce(
+      (total, event) => total + event.projectedProfit,
+      0,
+    );
 
     return [
       {
@@ -208,8 +255,13 @@ export function EventsPage() {
         value: String(events.filter((event) => event._count.items > 0).length),
         note: 'Eventos que ja carregam itens do orcamento',
       },
+      {
+        label: 'Lucro projetado',
+        value: formatCurrency(totalProjectedProfit.toFixed(2)),
+        note: 'Valor fechado menos os custos ja lancados',
+      },
     ];
-  }, [budgetsReady.length, events]);
+  }, [budgetsReady.length, events, filteredEvents]);
 
   async function handleConvertBudget(budget: ApiBudget) {
     try {
@@ -441,7 +493,7 @@ export function EventsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-5 lg:w-[560px] lg:text-right">
+                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-7 lg:w-[840px] lg:text-right">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Data
@@ -464,6 +516,34 @@ export function EventsPage() {
                       </p>
                       <p className="mt-2 font-medium text-foreground">
                         {formatCurrency(event.finalPrice)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Recebido
+                      </p>
+                      <p className="mt-2 font-medium text-foreground">
+                        {formatCurrency(event.received.toFixed(2))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Custos
+                      </p>
+                      <p className="mt-2 font-medium text-foreground">
+                        {formatCurrency(event.costs.toFixed(2))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Lucro proj.
+                      </p>
+                      <p
+                        className={`mt-2 font-medium ${
+                          event.projectedProfit >= 0 ? 'text-[#2d6a3a]' : 'text-[#8f4242]'
+                        }`}
+                      >
+                        {formatCurrency(event.projectedProfit.toFixed(2))}
                       </p>
                     </div>
                     <div>

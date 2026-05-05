@@ -68,6 +68,7 @@ Hoje o projeto ja tem uma base funcional para:
 - fluxo inicial de pagamentos e financeiro
 - fluxo inicial de custos por evento
 - base de produtos e ficha tecnica
+- dashboard puxando dados reais de eventos, orcamentos, pagamentos, custos e produtos
 - banco PostgreSQL configurado
 - migrations com Prisma
 
@@ -91,6 +92,8 @@ Ja esta funcionando:
 - relacionar o orcamento com um cliente
 - adicionar itens do cardapio ao orcamento
 - calcular custo estimado para servico completo quando existir ficha tecnica
+- mostrar a composicao de ingredientes no custo estimado
+- aplicar extra operacional e margem para sugerir o valor do orcamento
 
 ### Servicos
 
@@ -137,6 +140,8 @@ Ja esta funcionando:
 - registro de pagamentos por evento
 - controle de tipo e forma de pagamento
 - visao de valor fechado, recebido e saldo restante
+- leitura dos custos lancados para mostrar resultado atual
+- lucro projetado por evento com base no que ja foi lancado
 - painel financeiro inicial com ultimos recebimentos
 
 ### Custos
@@ -313,8 +318,9 @@ Com frontend e backend rodando, ja da para acessar:
 ## Proximos passos
 
 - revisar o fluxo de orcamentos para uso diario
-- ligar pagamentos e custos ao lucro real
-- ligar melhor agenda, eventos e financeiro
+- refinar a experiencia de envio e acompanhamento do orcamento
+- deixar o lucro real aparecer tambem em eventos e dashboard
+- ligar melhor dashboard, agenda, eventos e financeiro
 - melhorar ainda mais a experiencia de produtos e ficha tecnica
 - preparar o sistema para uso interno continuo
 - adicionar testes automatizados
