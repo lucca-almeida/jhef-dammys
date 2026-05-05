@@ -61,7 +61,13 @@ Hoje o projeto ja tem uma base funcional para:
 
 - dashboard administrativa
 - fluxo de clientes
-- base inicial do fluxo de orcamentos
+- fluxo de servicos
+- fluxo de orcamentos com itens
+- fluxo inicial de eventos
+- agenda mensal puxando os eventos reais
+- fluxo inicial de pagamentos e financeiro
+- fluxo inicial de custos por evento
+- base de produtos e ficha tecnica
 - banco PostgreSQL configurado
 - migrations com Prisma
 
@@ -77,12 +83,70 @@ Ja esta funcionando:
 
 ### Orcamentos
 
-Ja existe a base para:
+Ja esta funcionando:
 
 - criar orcamento
 - listar orcamentos
 - buscar orcamentos
 - relacionar o orcamento com um cliente
+- adicionar itens do cardapio ao orcamento
+- calcular custo estimado para servico completo quando existir ficha tecnica
+
+### Servicos
+
+Ja esta funcionando:
+
+- cadastro de servicos
+- listagem de servicos
+- ativar e desativar servicos
+- ficha tecnica por servico
+- custo estimado por pessoa
+
+### Produtos
+
+Ja esta funcionando:
+
+- cadastro de ingredientes e insumos
+- custo atual por produto
+- unidade de medida
+- estoque minimo e estoque atual
+- base para alimentar a ficha tecnica
+
+### Eventos
+
+Ja esta funcionando:
+
+- listagem de eventos
+- conversao de orcamento em evento
+- copia dos itens do orcamento para o evento
+- atualizacao inicial de status do evento
+
+### Agenda
+
+Ja esta funcionando:
+
+- calendario mensal com navegacao entre meses
+- destaque visual de datas ocupadas
+- selecao de dia para ver os eventos agendados
+- leitura da agenda real a partir da API de eventos
+
+### Financeiro
+
+Ja esta funcionando:
+
+- registro de pagamentos por evento
+- controle de tipo e forma de pagamento
+- visao de valor fechado, recebido e saldo restante
+- painel financeiro inicial com ultimos recebimentos
+
+### Custos
+
+Ja esta funcionando:
+
+- registro de custos por evento
+- categorias rapidas para o operacional
+- historico de gastos com busca
+- visao inicial do peso dos custos na operacao
 
 ## Como rodar o projeto
 
@@ -156,7 +220,7 @@ Dentro da pasta `backend`:
 
 ```bash
 npm.cmd run prisma:generate
-npm.cmd run prisma:migrate -- --name init
+npm.cmd run prisma:migrate -- --name nome-da-migration
 ```
 
 ### 6. Rodar o backend
@@ -237,21 +301,22 @@ Com frontend e backend rodando, ja da para acessar:
 
 - `http://localhost:3000/dashboard`
 - `http://localhost:3000/clientes`
+- `http://localhost:3000/servicos`
 - `http://localhost:3000/orcamentos`
 - `http://localhost:3000/agenda`
 - `http://localhost:3000/eventos`
+- `http://localhost:3000/financeiro`
+- `http://localhost:3000/produtos`
 - `http://localhost:3000/estoque`
 - `http://localhost:3000/custos`
-- `http://localhost:3000/financeiro`
 
 ## Proximos passos
 
-- completar o fluxo de orcamentos
-- adicionar servicos e itens do cardapio
-- relacionar itens aos orcamentos
-- transformar orcamento aprovado em evento
-- montar agenda real dos eventos
-- expandir custos, estoque e financeiro
+- revisar o fluxo de orcamentos para uso diario
+- ligar pagamentos e custos ao lucro real
+- ligar melhor agenda, eventos e financeiro
+- melhorar ainda mais a experiencia de produtos e ficha tecnica
+- preparar o sistema para uso interno continuo
 - adicionar testes automatizados
 
 ## Sobre o GitHub
