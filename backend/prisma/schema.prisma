@@ -73,15 +73,46 @@ model Client {
 }
 
 model Service {
-  id          String      @id @default(uuid())
-  name        String
-  description String?
-  basePrice   Decimal?    @db.Decimal(10, 2)
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  budgetItems BudgetItem[]
-  eventItems  EventItem[]
+  id            String              @id @default(uuid())
+  name          String
+  description   String?
+  basePrice     Decimal?            @db.Decimal(10, 2)
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  budgetItems   BudgetItem[]
+  eventItems    EventItem[]
+  recipeItems   ServiceRecipeItem[]
+}
+
+model Product {
+  id              String              @id @default(uuid())
+  name            String
+  description     String?
+  category        String?
+  unit            String
+  currentCost     Decimal             @db.Decimal(10, 2)
+  averageCost     Decimal?            @db.Decimal(10, 2)
+  stockQuantity   Decimal?            @db.Decimal(10, 3)
+  minimumStock    Decimal?            @db.Decimal(10, 3)
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  recipeItems     ServiceRecipeItem[]
+}
+
+model ServiceRecipeItem {
+  id                String   @id @default(uuid())
+  serviceId         String
+  productId         String
+  quantityPerPerson Decimal  @db.Decimal(10, 4)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  service           Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id])
+
+  @@unique([serviceId, productId])
 }
 
 model Budget {

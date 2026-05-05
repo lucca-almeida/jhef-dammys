@@ -22,6 +22,7 @@ type ApiService = {
   description: string | null;
   basePrice: string | null;
   isActive: boolean;
+  estimatedCostPerPerson: string | null;
 };
 
 type BudgetType = 'LABOR_ONLY' | 'FULL_SERVICE';
@@ -105,6 +106,17 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatCurrency(value: number | string | null) {
+  if (value === null || value === '') {
+    return 'Nao definido';
+  }
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Number(value));
+}
+
 function getBudgetTypeLabel(type: BudgetType) {
   return type === 'FULL_SERVICE' ? 'Servico completo' : 'Mao de obra';
 }
@@ -146,6 +158,7 @@ export function BudgetsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastAutoEstimate, setLastAutoEstimate] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -242,6 +255,81 @@ export function BudgetsPage() {
     [services],
   );
 
+  const ingredientCostEstimate = useMemo(() => {
+    const guestCount = Number(form.guestCount);
+
+    if (!guestCount || guestCount <= 0 || form.budgetType !== 'FULL_SERVICE') {
+      return 0;
+    }
+
+    return form.items.reduce((sum, item) => {
+      const service = activeServices.find(
+        (serviceOption) => serviceOption.id === item.serviceId,
+      );
+
+      if (!service?.estimatedCostPerPerson) {
+        return sum;
+      }
+
+      const quantity = Number(item.quantity) || 1;
+      return sum + Number(service.estimatedCostPerPerson) * guestCount * quantity;
+    }, 0);
+  }, [activeServices, form.budgetType, form.guestCount, form.items]);
+
+  const servicesWithoutRecipeCount = useMemo(
+    () =>
+      form.items.filter((item) => {
+        if (!item.serviceId) {
+          return false;
+        }
+
+        const service = activeServices.find(
+          (serviceOption) => serviceOption.id === item.serviceId,
+        );
+
+        return !service?.estimatedCostPerPerson;
+      }).length,
+    [activeServices, form.items],
+  );
+
+  const currentEstimatedPrice = Number(form.estimatedPrice || 0);
+  const estimatedMargin =
+    form.budgetType === 'FULL_SERVICE'
+      ? currentEstimatedPrice - ingredientCostEstimate
+      : 0;
+
+  useEffect(() => {
+    if (form.budgetType !== 'FULL_SERVICE') {
+      return;
+    }
+
+    if (!ingredientCostEstimate) {
+      return;
+    }
+
+    const nextValue = ingredientCostEstimate.toFixed(2);
+
+    setForm((current) => {
+      if (
+        current.estimatedPrice &&
+        current.estimatedPrice !== lastAutoEstimate
+      ) {
+        return current;
+      }
+
+      if (current.estimatedPrice === nextValue) {
+        return current;
+      }
+
+      return {
+        ...current,
+        estimatedPrice: nextValue,
+      };
+    });
+
+    setLastAutoEstimate(nextValue);
+  }, [form.budgetType, ingredientCostEstimate, lastAutoEstimate]);
+
   function updateFormItem(
     index: number,
     field: keyof BudgetFormItem,
@@ -310,6 +398,7 @@ export function BudgetsPage() {
         budgetType: 'FULL_SERVICE',
         items: [createEmptyItem()],
       }));
+      setLastAutoEstimate('');
     } catch (submitError) {
       setError('Nao foi possivel criar o orcamento agora.');
     } finally {
@@ -440,9 +529,9 @@ export function BudgetsPage() {
             </label>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="rounded-[22px] border border-border bg-white px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Valor estimado
+            <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Valor estimado
                 </p>
                 <input
                   required
@@ -454,9 +543,14 @@ export function BudgetsPage() {
                     }))
                   }
                   placeholder="Ex: 3500.00"
-                  className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-                />
-              </label>
+                className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+              />
+              {form.budgetType === 'FULL_SERVICE' && ingredientCostEstimate > 0 ? (
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Preenchido com base no custo estimado atual dos ingredientes.
+                </p>
+              ) : null}
+            </label>
 
               <label className="rounded-[22px] border border-border bg-white px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -511,6 +605,57 @@ export function BudgetsPage() {
                 </button>
               </div>
 
+              {form.budgetType === 'FULL_SERVICE' ? (
+                <div className="mt-4 grid gap-3 rounded-[22px] border border-[#e8d7ca] bg-[#fcf5ef] p-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custo estimado dos ingredientes
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(ingredientCostEstimate)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Valor para o cliente
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(currentEstimatedPrice)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Margem prevista
+                    </p>
+                    <p
+                      className={`mt-2 text-2xl font-semibold tracking-tight ${
+                        estimatedMargin >= 0 ? 'text-[#2d6a3a]' : 'text-[#8f4242]'
+                      }`}
+                    >
+                      {formatCurrency(estimatedMargin)}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {form.budgetType === 'FULL_SERVICE' ? (
+                <div className="mt-3 rounded-[22px] border border-[#ead9cb] bg-white px-4 py-4 text-sm leading-6 text-muted">
+                  A conta usa `quantidade de pessoas x custo por pessoa` de cada
+                  servico que ja tenha ficha tecnica montada.
+                  {servicesWithoutRecipeCount > 0 ? (
+                    <p className="mt-2 text-[#8a4c30]">
+                      {servicesWithoutRecipeCount} item(ns) ainda sem ficha tecnica,
+                      entao esse custo pode estar incompleto.
+                    </p>
+                  ) : null}
+                  {ingredientCostEstimate > 0 && estimatedMargin < 0 ? (
+                    <p className="mt-2 text-[#8f4242]">
+                      O valor estimado esta abaixo do custo calculado dos ingredientes.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="mt-4 space-y-4">
                 {form.items.map((item, index) => (
                   <div
@@ -536,6 +681,20 @@ export function BudgetsPage() {
                             </option>
                           ))}
                         </select>
+                        {item.serviceId ? (
+                          <p className="mt-2 text-xs leading-5 text-muted">
+                            Custo por pessoa:{' '}
+                            {(() => {
+                              const selected = activeServices.find(
+                                (service) => service.id === item.serviceId,
+                              );
+
+                              return selected?.estimatedCostPerPerson
+                                ? formatCurrency(selected.estimatedCostPerPerson)
+                                : 'nao definido';
+                            })()}
+                          </p>
+                        ) : null}
                       </label>
 
                       <label className="rounded-[18px] border border-border bg-white px-4 py-3">

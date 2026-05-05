@@ -11,7 +11,7 @@ const menuItems = [
   { href: '/servicos', label: 'Servicos' },
   { href: '/orcamentos', label: 'Orcamentos' },
   { href: '/eventos', label: 'Eventos' },
-  { href: '/estoque', label: 'Estoque' },
+  { href: '/produtos', label: 'Produtos' },
   { href: '/custos', label: 'Custos' },
   { href: '/financeiro', label: 'Financeiro' },
 ];

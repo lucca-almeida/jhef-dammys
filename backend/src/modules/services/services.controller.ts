@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { UpdateServiceRecipeDto } from './dto/update-service-recipe.dto';
 
 @Controller('services')
 export class ServicesController {
@@ -21,6 +22,14 @@ export class ServicesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.servicesService.findOne(id);
+  }
+
+  @Put(':id/recipe')
+  updateRecipe(
+    @Param('id') id: string,
+    @Body() updateServiceRecipeDto: UpdateServiceRecipeDto,
+  ) {
+    return this.servicesService.updateRecipe(id, updateServiceRecipeDto);
   }
 
   @Patch(':id')
