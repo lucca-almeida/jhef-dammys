@@ -12,7 +12,7 @@ export class ServicesService {
 
   private calculateRecipeCost(
     recipeItems?: Array<{
-      quantityPerPerson: Prisma.Decimal | string;
+      quantityFor50Person: Prisma.Decimal | string;
       product: { currentCost: Prisma.Decimal | string };
     }>,
   ) {
@@ -21,7 +21,7 @@ export class ServicesService {
     }
 
     const total = recipeItems.reduce((sum, item) => {
-      const quantity = Number(item.quantityPerPerson);
+      const quantity = Number(item.quantityFor50Person);
       const cost = Number(item.product.currentCost);
       return sum + quantity * cost;
     }, 0);
@@ -176,7 +176,7 @@ export class ServicesService {
   async updateRecipe(id: string, updateServiceRecipeDto: UpdateServiceRecipeDto) {
     const recipeItems = updateServiceRecipeDto.items.map((item) => ({
       productId: item.productId,
-      quantityPerPerson: new Prisma.Decimal(item.quantityPerPerson),
+      quantityFor50Person: new Prisma.Decimal(item.quantityFor50Person),
       notes: item.notes,
     }));
 

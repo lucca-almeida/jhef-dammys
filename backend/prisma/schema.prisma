@@ -105,7 +105,7 @@ model ServiceRecipeItem {
   id                String   @id @default(uuid())
   serviceId         String
   productId         String
-  quantityPerPerson Decimal  @db.Decimal(10, 4)
+  quantityFor50Person Decimal  @db.Decimal(10, 4)
   notes             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

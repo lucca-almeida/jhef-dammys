@@ -359,7 +359,7 @@ export function ProductsPage() {
               />
             </label>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4">
               <label className="rounded-[22px] border border-border bg-white px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                   Unidade
@@ -545,8 +545,8 @@ export function ProductsPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 text-sm text-muted sm:grid-cols-5 lg:w-[600px] lg:text-right">
-                      <div>
+                    <div className="grid grid-cols-2 gap-3 text-sm text-muted">
+                      <div className='min-w-0'>
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Custo atual
                         </p>
@@ -554,7 +554,7 @@ export function ProductsPage() {
                           {formatCurrency(product.currentCost)}
                         </p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Estoque
                         </p>
@@ -562,7 +562,7 @@ export function ProductsPage() {
                           {formatQuantity(product.stockQuantity, product.unit)}
                         </p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Minimo
                         </p>
@@ -570,7 +570,7 @@ export function ProductsPage() {
                           {formatQuantity(product.minimumStock, product.unit)}
                         </p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Em receitas
                         </p>
@@ -660,7 +660,7 @@ export function ProductsPage() {
                 />
               </label>
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-3">
                 <label className="rounded-[22px] border border-border bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                     Unidade
@@ -731,9 +731,9 @@ export function ProductsPage() {
               </div>
 
               <div className="rounded-[22px] border border-border bg-white px-4 py-4 text-sm text-muted">
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Em receitas
                     </p>
                     <p className="mt-2 font-medium text-foreground">

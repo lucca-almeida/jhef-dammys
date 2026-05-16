@@ -119,7 +119,7 @@ Ela liga:
 - `id`
 - `serviceId`
 - `productId`
-- `quantityPerPerson`
+- `quantityFor50Person`
 - `fixedQuantity`
 - `wasteFactor`
 - `notes`
@@ -130,14 +130,14 @@ Ela liga:
 
 - `serviceId`: qual prato ou servico esta sendo montado
 - `productId`: qual ingrediente entra nele
-- `quantityPerPerson`: quanto desse produto vai por pessoa
+- `quantityFor50Person`: quanto desse produto vai por pessoa
 - `fixedQuantity`: quantidade fixa se existir
 - `wasteFactor`: margem de perda opcional
 - `notes`: observacoes, como "usar corte especial" ou "considerar mesa completa"
 
 ### Regra principal
 
-Para esse projeto, a melhor logica inicial e trabalhar com `quantityPerPerson`.
+Para esse projeto, a melhor logica inicial e trabalhar com `quantityFor50Person`.
 
 Exemplo:
 
@@ -306,7 +306,7 @@ Para nao baguncar o projeto, a melhor ordem e:
 
 Minha recomendacao para a primeira versao dessa inteligencia e:
 
-- usar `quantityPerPerson`
+- usar `quantityFor50Person`
 - usar `currentCost` como base do calculo
 - manter a margem e o preco final ainda editaveis
 

@@ -21,7 +21,7 @@ CREATE TABLE "ServiceRecipeItem" (
     "id" TEXT NOT NULL,
     "serviceId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
-    "quantityPerPerson" DECIMAL(10,4) NOT NULL,
+    "quantityFor50Person" DECIMAL(10,4) NOT NULL,
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

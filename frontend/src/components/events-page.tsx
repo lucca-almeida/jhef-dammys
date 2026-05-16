@@ -279,9 +279,11 @@ export function EventsPage() {
       const received = payments
         .filter((payment) => payment.eventId === event.id)
         .reduce((total, payment) => total + Number(payment.amount), 0);
+
       const eventCosts = costs
         .filter((costItem) => costItem.eventId === event.id)
         .reduce((total, costItem) => total + Number(costItem.amount), 0);
+
       const finalPrice = Number(event.finalPrice);
 
       return {
@@ -293,13 +295,19 @@ export function EventsPage() {
       };
     });
 
+    const activeEvents = enrichedEvents.filter(
+      (event) =>
+        event.status === 'PENDING' ||
+        event.status === 'CONFIRMED',
+    );
+
     const normalizedSearch = search.trim().toLowerCase();
 
     if (!normalizedSearch) {
-      return enrichedEvents;
+      return activeEvents;
     }
 
-    return enrichedEvents.filter((event) =>
+    return activeEvents.filter((event) =>
       [
         event.title,
         event.client.name,
@@ -370,13 +378,13 @@ export function EventsPage() {
         current.map((item) =>
           item.id === budget.id
             ? {
-                ...item,
-                status: 'APPROVED',
-                event: {
-                  id: createdEvent.id,
-                  status: createdEvent.status,
-                },
-              }
+              ...item,
+              status: 'APPROVED',
+              event: {
+                id: createdEvent.id,
+                status: createdEvent.status,
+              },
+            }
             : item,
         ),
       );
@@ -413,14 +421,21 @@ export function EventsPage() {
       setEvents((current) =>
         current.map((item) => (item.id === event.id ? updatedEvent : item)),
       );
-      setSelectedEventDetails((current) =>
-        current && current.id === event.id
-          ? {
-              ...current,
-              ...updatedEvent,
-            }
-          : current,
-      );
+      setSelectedEventDetails((current) => {
+        if (!current || current.id !== event.id) {
+          return current;
+        }
+
+        if (updatedEvent.status === 'COMPLETED' ||
+          updatedEvent.status === 'CANCELED'
+        ) {
+          return null;
+        }
+        return {
+          ...current,
+          ...updatedEvent,
+        };
+      });
     } catch (updateError) {
       setError('Nao foi possivel atualizar o status do evento.');
     } finally {
@@ -478,7 +493,7 @@ export function EventsPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid gap-6 xl:grid-cols-[0,0.9fr)_minmax(0,1.1fr)]">
         <DashboardSection
           eyebrow="Orcamentos prontos"
           title={`${budgetsReady.length} proposta(s) esperando virar evento`}
@@ -490,7 +505,7 @@ export function EventsPage() {
                 key={budget.id}
                 className="rounded-[24px] border border-border bg-white px-4 py-4"
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col gap-4 ">
                   <div>
                     <h4 className="text-lg font-semibold tracking-tight">
                       {budget.client.name}
@@ -582,13 +597,12 @@ export function EventsPage() {
             {filteredEvents.map((event) => (
               <article
                 key={event.id}
-                className={`rounded-[24px] border bg-white px-4 py-4 transition ${
-                  selectedEventId === event.id
-                    ? 'border-accent shadow-[0_20px_40px_rgba(102,66,46,0.08)]'
-                    : 'border-border'
-                }`}
+                className={`rounded-[24px] border bg-white px-4 py-4 transition ${selectedEventId === event.id
+                  ? 'border-accent shadow-[0_20px_40px_rgba(102,66,46,0.08)]'
+                  : 'border-border'
+                  }`}
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col gap-4 ">
                   <div className="space-y-3">
                     <div>
                       <h4 className="text-lg font-semibold tracking-tight">
@@ -604,11 +618,10 @@ export function EventsPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedEventId(event.id)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                          selectedEventId === event.id
-                            ? 'border-accent bg-accent text-white'
-                            : 'border-border bg-white text-foreground hover:border-accent/40'
-                        }`}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${selectedEventId === event.id
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-border bg-white text-foreground hover:border-accent/40'
+                          }`}
                       >
                         Detalhes
                       </button>
@@ -671,9 +684,8 @@ export function EventsPage() {
                         Lucro proj.
                       </p>
                       <p
-                        className={`mt-2 font-medium ${
-                          event.projectedProfit >= 0 ? 'text-[#2d6a3a]' : 'text-[#8f4242]'
-                        }`}
+                        className={`mt-2 font-medium ${event.projectedProfit >= 0 ? 'text-[#2d6a3a]' : 'text-[#8f4242]'
+                          }`}
                       >
                         {formatCurrency(event.projectedProfit.toFixed(2))}
                       </p>
@@ -693,7 +705,8 @@ export function EventsPage() {
                         disabled={
                           isUpdatingId === event.id ||
                           event.status === 'COMPLETED' ||
-                          event.status === 'CANCELED'
+                          event.status === 'CANCELED' ||
+                          new Date(event.eventDate) > new Date()
                         }
                         className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 disabled:cursor-not-allowed disabled:opacity-60"
                       >
@@ -718,15 +731,18 @@ export function EventsPage() {
             ) : null}
           </div>
         </DashboardSection>
+        
+        {selectedEventDetails &&
+          selectedEventDetails.status !== 'COMPLETED' &&
+          selectedEventDetails.status !== 'CANCELED' && (
 
+          
         <DashboardSection
           eyebrow="Painel do evento"
-          title={
-            selectedEventDetails
-              ? selectedEventDetails.title
-              : 'Selecione um evento'
-          }
-          action="Visao completa"
+
+          title= {selectedEventDetails.title}
+          
+          action= "Visão Completa"
         >
           {isLoadingDetails ? (
             <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
@@ -740,7 +756,7 @@ export function EventsPage() {
             </div>
           ) : null}
 
-          {selectedEventDetails && selectedEventMetrics ? (
+          {selectedEventMetrics ? (
             <div className="space-y-5">
               <div className="rounded-[24px] border border-border bg-white px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -811,11 +827,10 @@ export function EventsPage() {
                       Resultado atual
                     </p>
                     <p
-                      className={`mt-2 font-medium ${
-                        selectedEventMetrics.currentResult >= 0
-                          ? 'text-[#2d6a3a]'
-                          : 'text-[#8f4242]'
-                      }`}
+                      className={`mt-2 font-medium ${selectedEventMetrics.currentResult >= 0
+                        ? 'text-[#2d6a3a]'
+                        : 'text-[#8f4242]'
+                        }`}
                     >
                       {formatCurrency(selectedEventMetrics.currentResult.toFixed(2))}
                     </p>
@@ -939,6 +954,8 @@ export function EventsPage() {
             </div>
           ) : null}
         </DashboardSection>
+      )}
+
       </div>
 
       {error ? (

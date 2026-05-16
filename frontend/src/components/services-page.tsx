@@ -16,7 +16,7 @@ type ApiProduct = {
 type ApiServiceRecipeItem = {
   id: string;
   productId: string;
-  quantityPerPerson: string;
+  quantityFor50Person: string;
   notes: string | null;
   product: ApiProduct;
 };
@@ -49,7 +49,7 @@ const createFormFromService = (service: ApiService): ServiceForm => ({
 
 type RecipeFormItem = {
   productId: string;
-  quantityPerPerson: string;
+  quantityFor50Person: string;
   notes: string;
 };
 
@@ -61,7 +61,7 @@ const initialForm: ServiceForm = {
 
 const createEmptyRecipeItem = (): RecipeFormItem => ({
   productId: '',
-  quantityPerPerson: '',
+  quantityFor50Person: '',
   notes: '',
 });
 
@@ -187,8 +187,8 @@ export function ServicesPage() {
     const perPerson = Number(selectedService.estimatedCostPerPerson);
 
     return {
-      cost50: (perPerson * 50).toFixed(2),
-      cost100: (perPerson * 100).toFixed(2),
+      cost50: perPerson.toFixed(2),
+      cost100: (perPerson * 2).toFixed(2),
     };
   }, [selectedService]);
 
@@ -208,7 +208,7 @@ export function ServicesPage() {
     setRecipeItems(
       selectedService.recipeItems.map((item) => ({
         productId: item.productId,
-        quantityPerPerson: item.quantityPerPerson,
+        quantityFor50Person: item.quantityFor50Person,
         notes: item.notes ?? '',
       })),
     );
@@ -324,10 +324,10 @@ export function ServicesPage() {
       setError(null);
 
       const normalizedItems = recipeItems
-        .filter((item) => item.productId && item.quantityPerPerson)
+        .filter((item) => item.productId && item.quantityFor50Person)
         .map((item) => ({
           productId: item.productId,
-          quantityPerPerson: item.quantityPerPerson,
+          quantityFor50Person: item.quantityFor50Person,
           notes: item.notes || undefined,
         }));
 
@@ -360,7 +360,7 @@ export function ServicesPage() {
         actions={['Novo servico', 'Ver ativos', 'Organizar catalogo']}
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {summary.map((item) => (
           <article
             key={item.label}
@@ -464,7 +464,7 @@ export function ServicesPage() {
           title={isLoading ? 'Carregando catalogo...' : `${services.length} item(ns) no catalogo`}
           action="Atualizado pela API"
         >
-          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+          <div className="mb-5 flex flex-col gap-4 lg:flex-row">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar servico
@@ -505,7 +505,7 @@ export function ServicesPage() {
                       : 'border-border bg-white'
                   }`}
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex flex-col gap-4">
                     <div className="space-y-3">
                       <div>
                         <h4 className="text-lg font-semibold tracking-tight">
@@ -534,7 +534,7 @@ export function ServicesPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 text-sm text-muted sm:grid-cols-4 lg:w-[500px] lg:text-right">
+                    <div className="grid gap-3 text-sm text-muted sm:grid-cols-2 ">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Valor base
@@ -675,21 +675,21 @@ export function ServicesPage() {
 
               <div className="rounded-[22px] border border-border bg-white px-4 py-4 text-sm leading-6 text-muted">
                 <p className="font-medium text-foreground">
-                  Custo estimado por pessoa:
+                  Custo estimado da receita base:
                 </p>
                 <p className="mt-2 text-lg font-semibold text-foreground">
                   {formatCurrency(selectedService.estimatedCostPerPerson)}
                 </p>
                 <p className="mt-2">
-                  O sistema usa a soma de `quantidade por pessoa x custo atual do
-                  produto`.
+                  O sistema usa a soma da quantidade usada na receita de 50 pessoas x custo atual do
+                  produto.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-[22px] border border-border bg-white px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Custo estimado para 50 pessoas
+                    Custo estimado da receita (50 pessoas)
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                     {formatCurrency(recipePreview.cost50)}
@@ -698,7 +698,7 @@ export function ServicesPage() {
 
                 <div className="rounded-[22px] border border-border bg-white px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Custo estimado para 100 pessoas
+                    Projeção para 100 pessoas
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                     {formatCurrency(recipePreview.cost100)}
@@ -712,7 +712,7 @@ export function ServicesPage() {
                     key={`${index}-${item.productId || 'novo'}`}
                     className="rounded-[22px] border border-border bg-white p-4"
                   >
-                    <div className="grid gap-4 lg:grid-cols-[1.2fr_160px_auto]">
+                    <div className="flex flex-col gap-4">
                       <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Produto
@@ -754,21 +754,23 @@ export function ServicesPage() {
 
                       <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                          Qtd por pessoa
+                          Quantidade para 50 pessoas
                         </p>
                         <input
-                          value={item.quantityPerPerson}
+                          type="text" 
+                          inputMode="decimal"
+                          value={item.quantityFor50Person}
                           onChange={(event) =>
                             updateRecipeItem(
                               index,
-                              'quantityPerPerson',
+                              'quantityFor50Person',
                               event.target.value,
                             )
                           }
-                          placeholder="Ex: 0.16"
+                          placeholder="Ex: 5kg"
                           className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
                         />
-                        {item.productId && item.quantityPerPerson ? (
+                        {item.productId && item.quantityFor50Person ? (
                           <p className="mt-2 text-xs leading-5 text-muted">
                             {(() => {
                               const selectedProduct = products.find(
@@ -780,9 +782,9 @@ export function ServicesPage() {
                               }
 
                               return `Consumo previsto: ${formatQuantity(
-                                item.quantityPerPerson,
+                                item.quantityFor50Person,
                                 selectedProduct.unit,
-                              )} por pessoa`;
+                              )} para 50 pessoas`;
                             })()}
                           </p>
                         ) : null}
@@ -801,14 +803,14 @@ export function ServicesPage() {
 
                     <label className="mt-4 block rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Observacao
+                        Observação
                       </p>
                       <input
                         value={item.notes}
                         onChange={(event) =>
                           updateRecipeItem(index, 'notes', event.target.value)
                         }
-                        placeholder="Ex: considerar margem para perda"
+                        placeholder="Ex: margem para perda"
                         className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
                       />
                     </label>

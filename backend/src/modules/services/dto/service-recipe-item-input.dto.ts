@@ -2,10 +2,10 @@ import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class ServiceRecipeItemInputDto {
   @IsUUID()
-  productId: string;
+  productId!: string;
 
   @IsString()
-  quantityPerPerson: string;
+  quantityFor50Person!: string;
 
   @IsOptional()
   @IsString()

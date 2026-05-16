@@ -27,7 +27,7 @@ type ApiService = {
   estimatedCostPerPerson: string | null;
   recipeItems?: Array<{
     id: string;
-    quantityPerPerson: string;
+    quantityFor50Person: string;
     notes: string | null;
     product: {
       id: string;
@@ -373,7 +373,7 @@ export function BudgetsPage() {
       }
 
       const quantity = Number(item.quantity) || 1;
-      return sum + Number(service.estimatedCostPerPerson) * guestCount * quantity;
+      return sum + (Number(service.estimatedCostPerPerson) /50)* guestCount * quantity;
     }, 0);
   }, [activeServices, form.budgetType, form.guestCount, form.items]);
 
@@ -402,9 +402,9 @@ export function BudgetsPage() {
       const itemQuantity = Number(item.quantity) || 1;
 
       service.recipeItems.forEach((recipeItem) => {
-        const quantityPerPerson = Number(recipeItem.quantityPerPerson);
+        const quantityFor50Person = Number(recipeItem.quantityFor50Person);
         const currentCost = Number(recipeItem.product.currentCost);
-        const totalQuantity = quantityPerPerson * guestCount * itemQuantity;
+        const totalQuantity = (quantityFor50Person / 50) * guestCount * itemQuantity;
         const totalCost = totalQuantity * currentCost;
         const existing = breakdownMap.get(recipeItem.product.id);
 
@@ -1319,7 +1319,7 @@ export function BudgetsPage() {
                       Abrir evento
                     </Link>
                   ) : null}
-                  {!budget.event ? (
+                  {!budget.event ?.id ? (
                     <button
                       type="button"
                       onClick={() => void handleConvertBudgetToEvent(budget)}
