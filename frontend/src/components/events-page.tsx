@@ -110,6 +110,16 @@ type EventCard = ApiEvent & {
   projectedProfit: number;
 };
 
+type EventForm = {
+  title: string;
+  eventDate: string;
+  eventLocation: string;
+  guestCount: string;
+  finalPrice: string;
+  downPayment: string;
+  notes: string;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
@@ -173,8 +183,31 @@ export function EventsPage() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
   const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [eventForm, setEventForm] = useState<EventForm>({
+    title: '',
+    eventDate: '',
+    eventLocation: '',
+    guestCount: '',
+    finalPrice: '',
+    downPayment: '',
+    notes: '',
+  });
   const [error, setError] = useState<string | null>(null);
   const preferredEventId = searchParams.get('eventId');
+
+  function fillEventForm(detail: EventDetail) {
+    setEventForm({
+      title: detail.title,
+      eventDate: detail.eventDate.slice(0, 10),
+      eventLocation: detail.eventLocation ?? '',
+      guestCount: String(detail.guestCount),
+      finalPrice: detail.finalPrice,
+      downPayment: detail.downPayment ?? '',
+      notes: detail.notes ?? '',
+    });
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -245,6 +278,9 @@ export function EventsPage() {
         }
 
         setSelectedEventDetails(detail);
+        if (!isEditingEvent) {
+          fillEventForm(detail);
+        }
       } catch (loadError) {
         if (isMounted) {
           setError('Nao foi possivel carregar os detalhes do evento selecionado.');
@@ -261,7 +297,7 @@ export function EventsPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedEventId]);
+  }, [isEditingEvent, selectedEventId]);
 
   const budgetsReady = useMemo(
     () =>
@@ -443,6 +479,51 @@ export function EventsPage() {
     }
   }
 
+  async function handleSaveEventDetails(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!selectedEventDetails) {
+      return;
+    }
+
+    try {
+      setIsSavingEvent(true);
+      setError(null);
+
+      const updatedEvent = await api<ApiEvent>(`/events/${selectedEventDetails.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: eventForm.title,
+          eventDate: eventForm.eventDate,
+          eventLocation: eventForm.eventLocation || undefined,
+          guestCount: Number(eventForm.guestCount),
+          finalPrice: eventForm.finalPrice,
+          downPayment: eventForm.downPayment || undefined,
+          notes: eventForm.notes.trim() || undefined,
+        }),
+      });
+
+      setEvents((current) =>
+        current.map((item) => (item.id === updatedEvent.id ? updatedEvent : item)),
+      );
+      setSelectedEventDetails((current) =>
+        current && current.id === updatedEvent.id
+          ? {
+              ...current,
+              ...updatedEvent,
+            }
+          : current,
+      );
+      setIsEditingEvent(false);
+    } catch (saveError) {
+      setError('Nao foi possivel atualizar os dados desse evento agora.');
+    } finally {
+      setIsSavingEvent(false);
+    }
+  }
+
   const selectedEventMetrics = useMemo(() => {
     if (!selectedEventDetails) {
       return null;
@@ -493,7 +574,7 @@ export function EventsPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0,0.9fr)_minmax(0,1.1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_minmax(0,1.1fr)]">
         <DashboardSection
           eyebrow="Orcamentos prontos"
           title={`${budgetsReady.length} proposta(s) esperando virar evento`}
@@ -505,7 +586,7 @@ export function EventsPage() {
                 key={budget.id}
                 className="rounded-[24px] border border-border bg-white px-4 py-4"
               >
-                <div className="flex flex-col gap-4 ">
+                <div className="flex flex-col gap-4">
                   <div>
                     <h4 className="text-lg font-semibold tracking-tight">
                       {budget.client.name}
@@ -602,7 +683,7 @@ export function EventsPage() {
                   : 'border-border'
                   }`}
               >
-                <div className="flex flex-col gap-4 ">
+                <div className="flex flex-col gap-4">
                   <div className="space-y-3">
                     <div>
                       <h4 className="text-lg font-semibold tracking-tight">
@@ -625,6 +706,18 @@ export function EventsPage() {
                       >
                         Detalhes
                       </button>
+                      <Link
+                        href={`/financeiro?eventId=${event.id}`}
+                        className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                      >
+                        Financeiro
+                      </Link>
+                      <Link
+                        href={`/custos?eventId=${event.id}`}
+                        className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                      >
+                        Custos
+                      </Link>
                       <span className="rounded-full bg-[#f6ede7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
                         {getBudgetTypeLabel(event.budgetType)}
                       </span>
@@ -739,10 +832,8 @@ export function EventsPage() {
           
         <DashboardSection
           eyebrow="Painel do evento"
-
-          title= {selectedEventDetails.title}
-          
-          action= "Visão Completa"
+          title={selectedEventDetails.title}
+          action="Visao completa"
         >
           {isLoadingDetails ? (
             <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">
@@ -779,6 +870,21 @@ export function EventsPage() {
                   >
                     {getEventStatusLabel(selectedEventDetails.status)}
                   </span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!isEditingEvent ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fillEventForm(selectedEventDetails);
+                        setIsEditingEvent(true);
+                      }}
+                      className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                    >
+                      Editar dados do evento
+                    </button>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -837,6 +943,167 @@ export function EventsPage() {
                   </div>
                 </div>
               </div>
+
+              {isEditingEvent ? (
+                <form
+                  className="rounded-[24px] border border-border bg-white px-4 py-4"
+                  onSubmit={handleSaveEventDetails}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Ajustes rapidos
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted">
+                        Quando mudar local, valor ou observacao, ele consegue corrigir aqui mesmo.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Titulo
+                      </p>
+                      <input
+                        value={eventForm.title}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            title: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                      />
+                    </label>
+
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Data
+                      </p>
+                      <input
+                        type="date"
+                        value={eventForm.eventDate}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            eventDate: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Local
+                      </p>
+                      <input
+                        value={eventForm.eventLocation}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            eventLocation: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                      />
+                    </label>
+
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Pessoas
+                      </p>
+                      <input
+                        type="number"
+                        min={1}
+                        value={eventForm.guestCount}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            guestCount: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Valor fechado
+                      </p>
+                      <input
+                        value={eventForm.finalPrice}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            finalPrice: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                      />
+                    </label>
+
+                    <label className="rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Sinal combinado
+                      </p>
+                      <input
+                        value={eventForm.downPayment}
+                        onChange={(event) =>
+                          setEventForm((current) => ({
+                            ...current,
+                            downPayment: event.target.value,
+                          }))
+                        }
+                        placeholder="Opcional"
+                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="mt-4 block rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Observacoes
+                    </p>
+                    <textarea
+                      rows={3}
+                      value={eventForm.notes}
+                      onChange={(event) =>
+                        setEventForm((current) => ({
+                          ...current,
+                          notes: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={isSavingEvent}
+                      className="rounded-[18px] border border-accent bg-accent px-4 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isSavingEvent ? 'Salvando...' : 'Salvar ajustes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fillEventForm(selectedEventDetails);
+                        setIsEditingEvent(false);
+                      }}
+                      className="rounded-[18px] border border-border bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              ) : null}
 
               <div className="rounded-[24px] border border-border bg-white px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">

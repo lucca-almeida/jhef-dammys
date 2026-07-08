@@ -1,2 +1,4 @@
 docs/tmp/
 docs/rendered/
+*-dev.log
+*-dev.err.log

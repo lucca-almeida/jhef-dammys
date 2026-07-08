@@ -333,22 +333,22 @@ export default function DashboardPage() {
         {summaryCards.map((item) => (
           <article
             key={item.label}
-            className={`rounded-[24px] border border-border px-5 py-5 shadow-[0_18px_40px_rgba(102,66,46,0.08)] ${getCardToneClasses(
+            className={`flex min-h-[158px] flex-col justify-between rounded-[24px] border border-border px-4 py-4 shadow-[0_18px_40px_rgba(102,66,46,0.08)] ${getCardToneClasses(
               item.tone,
             )}`}
           >
             <p
-              className={`text-sm font-semibold uppercase tracking-[0.16em] ${
+              className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${
                 item.tone === 'dark' ? 'text-[#f0c9b1]' : 'text-accent'
               }`}
             >
               {item.label}
             </p>
-            <p className="mt-4 text-3xl font-semibold tracking-tight">
+            <p className="mt-3 text-2xl font-semibold tracking-tight xl:text-[1.75rem]">
               {isLoading ? '...' : item.value}
             </p>
             <p
-              className={`mt-2 text-sm leading-6 ${
+              className={`mt-3 text-sm leading-5 ${
                 item.tone === 'dark' ? 'text-[#ecd6c9]' : 'text-muted'
               }`}
             >

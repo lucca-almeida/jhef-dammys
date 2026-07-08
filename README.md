@@ -131,6 +131,7 @@ Ja esta funcionando:
 - copia dos itens do orcamento para o evento
 - atualizacao inicial de status do evento
 - painel com cardapio, pagamentos, custos e resultado por evento
+- edicao rapida dos dados principais do evento
 - atalhos para abrir financeiro e custos com o evento ja selecionado
 
 ### Agenda

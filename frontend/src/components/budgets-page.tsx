@@ -1017,7 +1017,7 @@ export function BudgetsPage() {
                     {ingredientBreakdown.map((ingredient) => (
                       <div
                         key={ingredient.productId}
-                        className="grid gap-3 rounded-[18px] border border-border px-4 py-3 text-sm text-muted md:grid-cols-[1.1fr_140px_140px_160px]"
+                        className="grid gap-3 rounded-[18px] border border-border px-4 py-3 text-sm text-muted md:grid-cols-2 xl:grid-cols-4"
                       >
                         <div>
                           <p className="font-medium text-foreground">{ingredient.name}</p>
@@ -1063,8 +1063,8 @@ export function BudgetsPage() {
                     key={`${index}-${item.serviceId || 'novo'}`}
                     className="rounded-[22px] border border-border bg-[#fcf8f4] p-4"
                   >
-                    <div className="grid gap-4 lg:grid-cols-[1.4fr_110px_150px_auto]">
-                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_110px_150px_auto]">
+                      <label className="rounded-[18px] border border-border bg-white px-4 py-3 md:col-span-2 xl:col-span-1">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           Servico
                         </p>
@@ -1127,7 +1127,7 @@ export function BudgetsPage() {
                         />
                       </label>
 
-                      <div className="flex items-end">
+                      <div className="flex items-end md:col-span-2 xl:col-span-1">
                         <button
                           type="button"
                           onClick={() => removeFormItem(index)}
@@ -1244,7 +1244,7 @@ export function BudgetsPage() {
                 className="rounded-[24px] border border-border bg-white px-4 py-4"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
+                  <div className="min-w-0 space-y-3">
                     <div>
                       <h4 className="text-lg font-semibold tracking-tight">
                         {budget.client.name}
@@ -1274,7 +1274,7 @@ export function BudgetsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-4 lg:w-[440px] lg:text-right">
+                  <div className="grid w-full gap-3 text-sm text-muted sm:grid-cols-2 lg:max-w-[440px] lg:grid-cols-4 lg:text-right">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Data
