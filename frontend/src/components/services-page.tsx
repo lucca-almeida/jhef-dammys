@@ -72,6 +72,25 @@ const serviceNotes = [
   'Nessa primeira versao, a conta usa quantidade por pessoa e custo atual do produto.',
 ];
 
+const servicePresets = [
+  {
+    label: 'Arroz carreteiro',
+    description: 'Prato principal para eventos com preparo em grande volume.',
+  },
+  {
+    label: 'Buffet de saladas',
+    description: 'Maionese, folhas, vinagrete, farofa e molhos.',
+  },
+  {
+    label: 'Combo completo',
+    description: 'Servico principal com acompanhamentos para fechar proposta.',
+  },
+  {
+    label: 'Mao de obra',
+    description: 'Quando o cliente compra os materiais e ele entra so com a execucao.',
+  },
+];
+
 function formatCurrency(value: string | null) {
   if (!value) {
     return 'Nao definido';
@@ -105,6 +124,7 @@ export function ServicesPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guestPreview, setGuestPreview] = useState('80');
 
   useEffect(() => {
     let isMounted = true;
@@ -193,6 +213,22 @@ export function ServicesPage() {
     };
   }, [selectedService]);
 
+  const guestCostPreview = useMemo(() => {
+    if (!selectedService?.estimatedCostFor50People) {
+      return null;
+    }
+
+    const guestCount = Number(guestPreview);
+
+    if (!guestCount || guestCount <= 0) {
+      return null;
+    }
+
+    return (
+      (Number(selectedService.estimatedCostFor50People) / 50) * guestCount
+    ).toFixed(2);
+  }, [guestPreview, selectedService]);
+
   useEffect(() => {
     if (!selectedService) {
       setRecipeItems([createEmptyRecipeItem()]);
@@ -239,6 +275,14 @@ export function ServicesPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function applyPreset(name: string, description: string) {
+    setForm((current) => ({
+      ...current,
+      name,
+      description: current.description || description,
+    }));
   }
 
   async function handleToggleService(service: ApiService) {
@@ -381,6 +425,24 @@ export function ServicesPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <DashboardSection eyebrow="Novo servico" title="Adicionar item ao catalogo">
           <form className="grid gap-4" onSubmit={handleCreateService}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {servicePresets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => applyPreset(preset.label, preset.description)}
+                  className="rounded-[20px] border border-border bg-[#fcf8f4] px-4 py-3 text-left transition hover:border-accent/40"
+                >
+                  <p className="text-sm font-semibold text-foreground">
+                    {preset.label}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted">
+                    {preset.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Nome
@@ -704,6 +766,35 @@ export function ServicesPage() {
                   <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                     {formatCurrency(recipePreview.cost100)}
                   </p>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border bg-white px-4 py-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <label className="max-w-[220px] rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Simular para quantas pessoas
+                    </p>
+                    <input
+                      type="number"
+                      min={1}
+                      value={guestPreview}
+                      onChange={(event) => setGuestPreview(event.target.value)}
+                      className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                    />
+                  </label>
+
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custo previsto dessa receita
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(guestCostPreview)}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-muted">
+                      Essa conta ajuda a enxergar rapido quanto esse servico pesa antes de entrar no orcamento.
+                    </p>
+                  </div>
                 </div>
               </div>
 
