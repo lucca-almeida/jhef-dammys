@@ -1,5 +1,5 @@
-import { ProductsPage } from '@/components/products-page';
+import { StockPage } from '@/components/stock-page';
 
 export default function EstoquePage() {
-  return <ProductsPage />;
+  return <StockPage />;
 }

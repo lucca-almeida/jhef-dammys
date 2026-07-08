@@ -68,6 +68,7 @@ Hoje o projeto ja tem uma base funcional para:
 - ajuste de configuracao no frontend para manter os aliases funcionando melhor no build
 - alias do frontend reforcado tambem no Next para evitar quebra entre ambientes
 - configuracao do Next mais presa a raiz do frontend para evitar confusao de workspace
+- primeira base real de estoque com entradas, saidas, ajustes e historico de movimentacoes
 - dashboard administrativa
 - fluxo de clientes
 - fluxo de servicos

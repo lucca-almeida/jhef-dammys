@@ -50,6 +50,12 @@ enum PaymentMethod {
   OTHER
 }
 
+enum StockMovementType {
+  ENTRY
+  EXIT
+  ADJUSTMENT
+}
+
 model User {
   id           String   @id @default(uuid())
   name         String
@@ -99,6 +105,23 @@ model Product {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   recipeItems     ServiceRecipeItem[]
+  stockMovements  StockMovement[]
+}
+
+model StockMovement {
+  id          String            @id @default(uuid())
+  productId   String
+  type        StockMovementType
+  quantity    Decimal           @db.Decimal(10, 3)
+  stockBefore Decimal           @db.Decimal(10, 3)
+  stockAfter  Decimal           @db.Decimal(10, 3)
+  unitCost    Decimal?          @db.Decimal(10, 2)
+  notes       String?
+  happenedAt  DateTime          @default(now())
+  createdAt   DateTime          @default(now())
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, happenedAt(sort: Desc)])
 }
 
 model ServiceRecipeItem {
