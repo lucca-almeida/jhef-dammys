@@ -27,6 +27,7 @@ type ApiService = {
   description: string | null;
   basePrice: string | null;
   isActive: boolean;
+  estimatedCostFor50People: string | null;
   estimatedCostPerPerson: string | null;
   recipeItems: ApiServiceRecipeItem[];
   _count: {
@@ -177,18 +178,18 @@ export function ServicesPage() {
   );
 
   const recipePreview = useMemo(() => {
-    if (!selectedService?.estimatedCostPerPerson) {
+    if (!selectedService?.estimatedCostFor50People) {
       return {
         cost50: null,
         cost100: null,
       };
     }
 
-    const perPerson = Number(selectedService.estimatedCostPerPerson);
+    const costFor50People = Number(selectedService.estimatedCostFor50People);
 
     return {
-      cost50: perPerson.toFixed(2),
-      cost100: (perPerson * 2).toFixed(2),
+      cost50: costFor50People.toFixed(2),
+      cost100: (costFor50People * 2).toFixed(2),
     };
   }, [selectedService]);
 
@@ -678,7 +679,7 @@ export function ServicesPage() {
                   Custo estimado da receita base:
                 </p>
                 <p className="mt-2 text-lg font-semibold text-foreground">
-                  {formatCurrency(selectedService.estimatedCostPerPerson)}
+                  {formatCurrency(selectedService.estimatedCostFor50People)}
                 </p>
                 <p className="mt-2">
                   O sistema usa a soma da quantidade usada na receita de 50 pessoas x custo atual do

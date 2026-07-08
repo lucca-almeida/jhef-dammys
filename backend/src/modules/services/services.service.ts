@@ -10,7 +10,7 @@ import { UpdateServiceRecipeDto } from './dto/update-service-recipe.dto';
 export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private calculateRecipeCost(
+  private calculateRecipeCostFor50People(
     recipeItems?: Array<{
       quantityFor50Person: Prisma.Decimal | string;
       product: { currentCost: Prisma.Decimal | string };
@@ -27,6 +27,23 @@ export class ServicesService {
     }, 0);
 
     return total.toFixed(2);
+  }
+
+  private enrichServiceWithRecipeCost<T extends { recipeItems?: Array<{
+    quantityFor50Person: Prisma.Decimal | string;
+    product: { currentCost: Prisma.Decimal | string };
+  }> }>(service: T) {
+    const estimatedCostFor50People = this.calculateRecipeCostFor50People(
+      service.recipeItems,
+    );
+
+    return {
+      ...service,
+      estimatedCostFor50People,
+      estimatedCostPerPerson: estimatedCostFor50People
+        ? (Number(estimatedCostFor50People) / 50).toFixed(2)
+        : null,
+    };
   }
 
   async create(createServiceDto: CreateServiceDto) {
@@ -54,10 +71,7 @@ export class ServicesService {
       },
     });
 
-    return {
-      ...service,
-      estimatedCostPerPerson: this.calculateRecipeCost(service.recipeItems),
-    };
+    return this.enrichServiceWithRecipeCost(service);
   }
 
   async findAll(query: ListServicesQueryDto) {
@@ -104,10 +118,7 @@ export class ServicesService {
       },
     });
 
-    return services.map((service) => ({
-      ...service,
-      estimatedCostPerPerson: this.calculateRecipeCost(service.recipeItems),
-    }));
+    return services.map((service) => this.enrichServiceWithRecipeCost(service));
   }
 
   async findOne(id: string) {
@@ -135,10 +146,7 @@ export class ServicesService {
       return service;
     }
 
-    return {
-      ...service,
-      estimatedCostPerPerson: this.calculateRecipeCost(service.recipeItems),
-    };
+    return this.enrichServiceWithRecipeCost(service);
   }
 
   async update(id: string, updateServiceDto: UpdateServiceDto) {
@@ -167,10 +175,7 @@ export class ServicesService {
       },
     });
 
-    return {
-      ...service,
-      estimatedCostPerPerson: this.calculateRecipeCost(service.recipeItems),
-    };
+    return this.enrichServiceWithRecipeCost(service);
   }
 
   async updateRecipe(id: string, updateServiceRecipeDto: UpdateServiceRecipeDto) {
@@ -207,9 +212,6 @@ export class ServicesService {
       },
     });
 
-    return {
-      ...service,
-      estimatedCostPerPerson: this.calculateRecipeCost(service.recipeItems),
-    };
+    return this.enrichServiceWithRecipeCost(service);
   }
 }

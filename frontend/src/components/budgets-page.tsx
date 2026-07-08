@@ -24,6 +24,7 @@ type ApiService = {
   description: string | null;
   basePrice: string | null;
   isActive: boolean;
+  estimatedCostFor50People: string | null;
   estimatedCostPerPerson: string | null;
   recipeItems?: Array<{
     id: string;
@@ -368,12 +369,15 @@ export function BudgetsPage() {
         (serviceOption) => serviceOption.id === item.serviceId,
       );
 
-      if (!service?.estimatedCostPerPerson) {
+      if (!service?.estimatedCostFor50People) {
         return sum;
       }
 
       const quantity = Number(item.quantity) || 1;
-      return sum + (Number(service.estimatedCostPerPerson) /50)* guestCount * quantity;
+      return (
+        sum +
+        (Number(service.estimatedCostFor50People) / 50) * guestCount * quantity
+      );
     }, 0);
   }, [activeServices, form.budgetType, form.guestCount, form.items]);
 
@@ -441,7 +445,7 @@ export function BudgetsPage() {
           (serviceOption) => serviceOption.id === item.serviceId,
         );
 
-        return !service?.estimatedCostPerPerson;
+        return !service?.estimatedCostFor50People;
       }).length,
     [activeServices, form.items],
   );
