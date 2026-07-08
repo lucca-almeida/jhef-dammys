@@ -278,7 +278,7 @@ export function ClientsPage() {
           eyebrow="Busca e filtros"
           title="Encontrar rapido quem entrou em contato"
         >
-          <div className="grid gap-4 lg:grid-cols-[1.2fr_auto]">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar cliente
@@ -293,7 +293,7 @@ export function ClientsPage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -478,7 +478,7 @@ export function ClientsPage() {
         <DashboardSection
           eyebrow="Cliente em destaque"
           title={selectedClient?.name ?? 'Nenhum cliente selecionado'}
-          action="Perfil detalhado"
+          action={selectedClient ? 'Perfil detalhado' : undefined}
         >
           {selectedClient ? (
             <div className="space-y-5">
@@ -511,10 +511,10 @@ export function ClientsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3">
                 <Link
                   href={`/orcamentos?clientId=${selectedClient.id}`}
-                  className="rounded-2xl border border-accent bg-accent px-4 py-3 text-center text-sm font-medium text-white transition hover:opacity-95"
+                  className="min-h-[52px] rounded-2xl border border-accent bg-accent px-4 py-3 text-center text-sm font-medium text-white transition hover:opacity-95"
                 >
                   Criar orcamento
                 </Link>

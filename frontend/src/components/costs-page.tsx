@@ -323,13 +323,13 @@ export function CostsPage() {
               </select>
             </label>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid gap-2 sm:flex sm:flex-wrap">
               {quickCategories.map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setCategory(item)}
-                  className={`rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                  className={`w-full rounded-full px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] transition sm:w-auto ${
                     category === item
                       ? 'bg-accent text-white'
                       : 'border border-border bg-white text-muted'
@@ -411,7 +411,7 @@ export function CostsPage() {
                     ? ` - ${selectedEvent.eventLocation}`
                     : ''}
                 </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Valor fechado
@@ -477,7 +477,7 @@ export function CostsPage() {
           title={isLoading ? 'Carregando custos...' : `${filteredCosts.length} custo(s) registrados`}
           action="Resumo"
         >
-          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+          <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar custo
@@ -493,7 +493,7 @@ export function CostsPage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -536,7 +536,7 @@ export function CostsPage() {
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 text-right">
+                  <div className="flex flex-col items-start gap-3 text-left sm:flex-row sm:items-center sm:text-right">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Valor
@@ -548,7 +548,7 @@ export function CostsPage() {
                     <button
                       type="button"
                       onClick={() => handleEditCost(cost)}
-                      className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                      className="w-full rounded-full border border-border px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 sm:w-auto"
                     >
                       Editar
                     </button>

@@ -605,7 +605,7 @@ export function EventsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-3 lg:w-[320px] lg:text-right">
+                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-2 lg:w-[320px] lg:grid-cols-3 lg:text-right">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Pessoas
@@ -627,7 +627,7 @@ export function EventsPage() {
                         type="button"
                         onClick={() => void handleConvertBudget(budget)}
                         disabled={isConvertingId === budget.id}
-                        className="rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                        className="w-full rounded-full border border-accent bg-accent px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                       >
                         {isConvertingId === budget.id ? 'Fechando...' : 'Virar evento'}
                       </button>
@@ -652,7 +652,7 @@ export function EventsPage() {
           title={isLoading ? 'Carregando agenda...' : `${filteredEvents.length} evento(s) na base`}
           action="Atualizado pela API"
         >
-          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+          <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar evento
@@ -668,7 +668,7 @@ export function EventsPage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+            className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -872,7 +872,7 @@ export function EventsPage() {
                   </span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   {!isEditingEvent ? (
                     <button
                       type="button"
@@ -880,7 +880,7 @@ export function EventsPage() {
                         fillEventForm(selectedEventDetails);
                         setIsEditingEvent(true);
                       }}
-                      className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                      className="w-full rounded-full border border-accent/30 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent sm:w-auto"
                     >
                       Editar dados do evento
                     </button>
@@ -1148,13 +1148,13 @@ export function EventsPage() {
 
               <div className="grid gap-5 lg:grid-cols-2">
                 <div className="rounded-[24px] border border-border bg-white px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Pagamentos
                     </p>
                     <Link
                       href={`/financeiro?eventId=${selectedEventDetails.id}`}
-                      className="rounded-full border border-accent/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                      className="w-full rounded-full border border-accent/30 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent sm:w-auto"
                     >
                       Lancar no financeiro
                     </Link>
@@ -1183,13 +1183,13 @@ export function EventsPage() {
                 </div>
 
                 <div className="rounded-[24px] border border-border bg-white px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Custos
                     </p>
                     <Link
                       href={`/custos?eventId=${selectedEventDetails.id}`}
-                      className="rounded-full border border-accent/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                      className="w-full rounded-full border border-accent/30 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent sm:w-auto"
                     >
                       Lancar em custos
                     </Link>

@@ -325,7 +325,7 @@ export function ProductsPage() {
                   placeholder="Ex: carnes, graos, temperos"
                   className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
                 />
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
                   {quickCategories.map((category) => (
                     <button
                       key={category}
@@ -333,7 +333,7 @@ export function ProductsPage() {
                       onClick={() =>
                         setForm((current) => ({ ...current, category }))
                       }
-                      className="rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:border-accent/40 hover:text-foreground"
+                      className="w-full rounded-full border border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:border-accent/40 hover:text-foreground sm:w-auto"
                     >
                       {category}
                     </button>
@@ -436,7 +436,7 @@ export function ProductsPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Salvando...' : 'Salvar produto'}
             </button>
@@ -469,7 +469,7 @@ export function ProductsPage() {
           title={isLoading ? 'Carregando insumos...' : `${products.length} item(ns) cadastrados`}
           action="Atualizado pela API"
         >
-          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+          <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar produto
@@ -485,7 +485,7 @@ export function ProductsPage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -585,7 +585,7 @@ export function ProductsPage() {
                             event.stopPropagation();
                             void handleToggleProduct(product);
                           }}
-                          className="mt-2 rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                          className="mt-2 w-full rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 sm:w-auto"
                         >
                           {product.isActive ? 'Desativar' : 'Ativar'}
                         </button>
@@ -763,7 +763,7 @@ export function ProductsPage() {
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isUpdating ? 'Atualizando...' : 'Salvar alteracoes'}
                 </button>
@@ -771,7 +771,7 @@ export function ProductsPage() {
                 <button
                   type="button"
                   onClick={() => setForm(createFormFromProduct(selectedProduct))}
-                  className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                  className="min-h-[52px] rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
                 >
                   Restaurar dados
                 </button>

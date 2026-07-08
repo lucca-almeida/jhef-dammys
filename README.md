@@ -60,6 +60,10 @@ JhefDammys/
 Hoje o projeto ja tem uma base funcional para:
 
 - login interno com senha
+- base inicial para usar como app no celular via PWA
+- navegacao mobile mais enxuta para uso no celular
+- login ajustado para abrir melhor em tela pequena
+- telas de clientes, orcamentos, eventos, financeiro, custos e produtos mais confortaveis no celular
 - dashboard administrativa
 - fluxo de clientes
 - fluxo de servicos

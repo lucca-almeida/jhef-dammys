@@ -16,11 +16,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     if (getStoredToken()) {
       router.replace('/dashboard');
     }
+
+    const installed =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+        true;
+
+    setIsStandalone(installed);
   }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -48,8 +56,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7efe7_0%,#efe4d9_48%,#eadccf_100%)] px-4 py-8 text-foreground">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7efe7_0%,#efe4d9_48%,#eadccf_100%)] px-4 py-[calc(20px+env(safe-area-inset-top))] pb-[calc(20px+env(safe-area-inset-bottom))] text-foreground">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-w-5xl items-center justify-center">
         <div className="grid w-full max-w-4xl gap-6 rounded-[32px] border border-border bg-panel p-6 shadow-[0_24px_80px_rgba(78,52,37,0.12)] lg:grid-cols-[1fr_0.9fr] lg:p-8">
           <section className="rounded-[28px] bg-[#2f241f] p-6 text-[#f7ede6]">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d8b6a5]">
@@ -64,7 +72,7 @@ export default function LoginPage() {
             </p>
 
             <div className="mt-8 space-y-3">
-              {[
+              {[ 
                 'Visual rapido da agenda e dos eventos ativos.',
                 'Orcamentos mais praticos e com custo estimado.',
                 'Financeiro e custos protegidos so para quem administra.',
@@ -77,6 +85,28 @@ export default function LoginPage() {
                 </div>
               ))}
             </div>
+
+            {!isStandalone ? (
+              <div className="mt-5 rounded-[20px] border border-white/10 bg-[#4a362e] px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f1c7b2]">
+                  Dica para celular
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#f7ede6]">
+                  Se quiser deixar mais pratico para ele usar no dia a dia,
+                  depois da primeira abertura voce pode adicionar este sistema na
+                  tela inicial do aparelho.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[20px] border border-white/10 bg-[#4a362e] px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f1c7b2]">
+                  Modo app ativo
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#f7ede6]">
+                  Este acesso ja esta abrindo com cara de aplicativo.
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-[28px] border border-border bg-white px-5 py-6 lg:px-6">
@@ -98,6 +128,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
@@ -111,6 +142,7 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
@@ -130,6 +162,10 @@ export default function LoginPage() {
               >
                 {isSubmitting ? 'Entrando...' : 'Entrar'}
               </button>
+
+              <p className="text-center text-xs leading-5 text-muted">
+                Este acesso e interno e foi pensado para uso do proprio negocio.
+              </p>
             </form>
           </section>
         </div>

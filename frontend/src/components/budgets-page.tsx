@@ -1007,7 +1007,7 @@ export function BudgetsPage() {
                         }));
                         setLastAutoEstimate(nextValue);
                       }}
-                      className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
+                      className="w-full rounded-full border border-accent/30 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent sm:w-auto"
                     >
                       Usar sugestao no valor
                     </button>
@@ -1208,7 +1208,7 @@ export function BudgetsPage() {
         }
         action="Atualizado pela API"
       >
-        <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+        <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label className="rounded-[22px] border border-border bg-white px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               Buscar proposta
@@ -1224,7 +1224,7 @@ export function BudgetsPage() {
           <button
             type="button"
             onClick={() => setSearch('')}
-            className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+            className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
           >
             Limpar
           </button>
@@ -1310,11 +1310,11 @@ export function BudgetsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   {budget.event ? (
                     <Link
                       href={`/eventos?eventId=${budget.event.id}`}
-                      className="rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a]"
+                      className="w-full rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a] sm:w-auto"
                     >
                       Abrir evento
                     </Link>
@@ -1324,7 +1324,7 @@ export function BudgetsPage() {
                       type="button"
                       onClick={() => void handleConvertBudgetToEvent(budget)}
                       disabled={isConvertingBudgetId === budget.id}
-                      className="rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a] disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full rounded-full border border-[#bfdfc5] bg-[#e8f4ea] px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#2d6a3a] transition hover:border-[#2d6a3a] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                     >
                       {isConvertingBudgetId === budget.id
                         ? 'Virando evento...'
@@ -1335,7 +1335,7 @@ export function BudgetsPage() {
                     type="button"
                     onClick={() => void handleEditBudget(budget.id)}
                     disabled={isLoadingBudgetId === budget.id}
-                    className="rounded-full border border-border bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full rounded-full border border-border bg-white px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                   >
                     {isLoadingBudgetId === budget.id ? 'Abrindo...' : 'Editar'}
                   </button>
@@ -1354,7 +1354,7 @@ export function BudgetsPage() {
                       disabled={
                         isUpdatingStatusId === budget.id || budget.status === statusValue
                       }
-                      className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                      className={`w-full rounded-full border px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] transition sm:w-auto ${
                         budget.status === statusValue
                           ? 'border-accent bg-accent text-white'
                           : 'border-border bg-white text-foreground hover:border-accent/40'

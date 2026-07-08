@@ -521,7 +521,7 @@ export function FinancePage() {
                     ? ` - ${selectedEvent.eventLocation}`
                     : ''}
                 </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Valor fechado
@@ -631,7 +631,7 @@ export function FinancePage() {
           title={isLoading ? 'Carregando financeiro...' : `${filteredCards.length} evento(s) monitorados`}
           action="Resumo"
         >
-          <div className="mb-5 grid gap-4">
+          <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar evento
@@ -647,7 +647,7 @@ export function FinancePage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -798,14 +798,14 @@ export function FinancePage() {
                       {formatDate(payment.paidAt)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                     <p className="font-semibold text-foreground">
                       {formatCurrency(payment.amount)}
                     </p>
                     <button
                       type="button"
                       onClick={() => handleEditPayment(payment)}
-                      className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                      className="w-full rounded-full border border-border px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 sm:w-auto"
                     >
                       Editar
                     </button>

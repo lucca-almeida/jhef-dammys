@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { AuthGate } from '@/components/auth-gate';
+import { PwaInstallButton } from '@/components/pwa-install-button';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -17,19 +18,78 @@ const menuItems = [
   { href: '/financeiro', label: 'Financeiro' },
 ];
 
+const mobileItems = [
+  { href: '/dashboard', label: 'Painel' },
+  { href: '/agenda', label: 'Agenda' },
+  { href: '/orcamentos', label: 'Orcamentos' },
+  { href: '/eventos', label: 'Eventos' },
+];
+
 type AppShellProps = {
   children: ReactNode;
 };
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const currentPage =
+    menuItems.find((item) => item.href === pathname)?.label ?? 'Painel';
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   return (
     <AuthGate>
       {({ user, logout }) => (
         <main className="min-h-screen bg-[linear-gradient(180deg,#f4ece4_0%,#efe4d9_100%)] text-foreground">
-          <div className="mx-auto grid min-h-screen max-w-7xl gap-6 px-4 py-4 lg:grid-cols-[260px_1fr] lg:px-6 lg:py-6">
-            <aside className="rounded-[28px] border border-border bg-[#2f241f] p-5 text-[#f7ede6] shadow-[0_24px_80px_rgba(46,34,28,0.35)]">
+          <div className="mx-auto max-w-7xl px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))] sm:px-4 lg:grid lg:min-h-screen lg:grid-cols-[260px_1fr] lg:gap-6 lg:px-6 lg:py-6 lg:pb-6">
+            <header className="mb-4 rounded-[24px] border border-border bg-panel/90 px-4 py-4 shadow-[0_20px_50px_rgba(102,66,46,0.08)] backdrop-blur lg:hidden">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                    JhefDammys
+                  </p>
+                  <h1 className="mt-1 truncate text-xl font-semibold tracking-tight">
+                    {currentPage}
+                  </h1>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(true)}
+                  className="inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-2xl border border-border bg-panel-strong px-4 text-sm font-medium text-foreground transition hover:border-accent/40"
+                >
+                  Menu
+                </button>
+              </div>
+            </header>
+
+            {isMenuOpen ? (
+              <div
+                className="fixed inset-0 z-40 bg-[#2f241f]/35 backdrop-blur-[2px] lg:hidden"
+                onClick={() => setIsMenuOpen(false)}
+              />
+            ) : null}
+
+            <aside
+              className={`fixed inset-y-0 left-0 z-50 w-[min(88vw,320px)] overflow-y-auto border-r border-white/10 bg-[#2f241f] p-5 text-[#f7ede6] shadow-[0_24px_80px_rgba(46,34,28,0.35)] transition duration-200 lg:static lg:w-auto lg:translate-x-0 lg:rounded-[28px] lg:border lg:border-border ${
+                isMenuOpen ? 'translate-x-0' : '-translate-x-[105%]'
+              }`}
+            >
+              <div className="mb-4 flex items-center justify-between lg:hidden">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d8b6a5]">
+                  Navegacao
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-2xl border border-white/12 bg-white/6 text-sm font-medium text-[#f7ede6]"
+                >
+                  Fechar
+                </button>
+              </div>
+
               <div className="rounded-[22px] border border-white/10 bg-white/6 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d8b6a5]">
                   JhefDammys
@@ -91,10 +151,34 @@ export function AppShell({ children }: AppShellProps) {
                   proprio e manter o estoque de itens de giro alto em dia.
                 </p>
               </div>
+
+              <PwaInstallButton />
             </aside>
 
-            <section className="space-y-6">{children}</section>
+            <section className="space-y-4 lg:space-y-6">{children}</section>
           </div>
+
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-panel/95 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_40px_rgba(102,66,46,0.12)] backdrop-blur lg:hidden">
+            <div className="mx-auto grid max-w-3xl grid-cols-4 gap-2">
+              {mobileItems.map((item) => {
+                const isActive = pathname === item.href;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-2xl px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.08em] transition ${
+                      isActive
+                        ? 'bg-[#2f241f] text-[#f7ede6]'
+                        : 'bg-panel-strong text-muted'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </main>
       )}
     </AuthGate>
