@@ -106,8 +106,6 @@ type BudgetForm = {
   guestCount: string;
   budgetType: BudgetType;
   estimatedPrice: string;
-  downPayment: string;
-  notes: string;
   items: BudgetFormItem[];
 };
 
@@ -125,16 +123,8 @@ const initialForm: BudgetForm = {
   guestCount: '',
   budgetType: 'FULL_SERVICE',
   estimatedPrice: '',
-  downPayment: '',
-  notes: '',
   items: [createEmptyItem()],
 };
-
-const serviceNotes = [
-  'Mao de obra: quando o cliente fornece os materiais.',
-  'Servico completo: quando o custo do mercado entra na conta.',
-  'Deixar os itens no orcamento ajuda a proposta a virar evento sem retrabalho.',
-];
 
 type IngredientBreakdownItem = {
   productId: string;
@@ -557,8 +547,6 @@ export function BudgetsPage() {
         guestCount: String(budget.guestCount),
         budgetType: budget.budgetType,
         estimatedPrice: budget.estimatedPrice,
-        downPayment: budget.downPayment ?? '',
-        notes: budget.notes ?? '',
         items: budget.items.length
           ? budget.items.map((item) => ({
               serviceId: item.serviceId,
@@ -602,8 +590,6 @@ export function BudgetsPage() {
         guestCount: Number(form.guestCount),
         budgetType: form.budgetType,
         estimatedPrice: form.estimatedPrice,
-        downPayment: form.downPayment || undefined,
-        notes: form.notes || undefined,
         items: normalizedItems,
       };
 
@@ -696,13 +682,13 @@ export function BudgetsPage() {
       <PageHeader
         eyebrow="Orcamentos"
         title="Gerar orcamento"
-        description="Escolha o cliente, a quantidade de pessoas e o servico. O sistema sugere um valor e voce ajusta se precisar."
+        description="Preencha o basico e veja o valor sugerido para cobrar."
       />
 
       <div className="grid gap-6">
         <DashboardSection
           eyebrow={isEditingBudgetId ? 'Editar orcamento' : 'Novo orcamento'}
-          title={isEditingBudgetId ? 'Ajustar proposta' : 'Montar proposta'}
+          title={isEditingBudgetId ? 'Ajustar proposta' : 'Orcamento rapido'}
         >
           <form className="grid gap-4" onSubmit={handleSubmitBudget}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -781,6 +767,62 @@ export function BudgetsPage() {
 
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Servico principal
+              </p>
+              <select
+                value={form.items[0]?.serviceId ?? ''}
+                onChange={(event) => {
+                  const nextServiceId = event.target.value;
+                  const selectedService = activeServices.find(
+                    (service) => service.id === nextServiceId,
+                  );
+
+                  setForm((current) => ({
+                    ...current,
+                    items: [
+                      {
+                        ...createEmptyItem(),
+                        serviceId: nextServiceId,
+                        quantity: '1',
+                        unitPrice: selectedService?.basePrice || '',
+                      },
+                    ],
+                  }));
+                }}
+                className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+              >
+                <option value="">Selecione</option>
+                {activeServices.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+              {form.items[0]?.serviceId ? (
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  {(() => {
+                    const selected = activeServices.find(
+                      (service) => service.id === form.items[0]?.serviceId,
+                    );
+
+                    if (!selected) {
+                      return 'Servico nao encontrado.';
+                    }
+
+                    return form.budgetType === 'FULL_SERVICE'
+                      ? `Custo medio por pessoa: ${formatCurrency(
+                          selected.estimatedCostPerPerson,
+                        )}`
+                      : `Valor base de mao de obra: ${formatCurrency(
+                          selected.basePrice,
+                        )}`;
+                  })()}
+                </p>
+              ) : null}
+            </label>
+
+            <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Local do evento
               </p>
               <input
@@ -796,9 +838,9 @@ export function BudgetsPage() {
             </label>
 
             <div className="grid gap-4 md:grid-cols-2">
-            <label className="rounded-[22px] border border-border bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                Valor estimado
+              <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Valor sugerido
                 </p>
                 <input
                   required
@@ -810,73 +852,29 @@ export function BudgetsPage() {
                     }))
                   }
                   placeholder="Ex: 3500.00"
-                className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-              />
-              {form.budgetType === 'FULL_SERVICE' && ingredientCostEstimate > 0 ? (
-                <p className="mt-2 text-xs leading-5 text-muted">
-                  Preenchido com base no custo atual da composicao.
-                </p>
-              ) : null}
-              {form.budgetType === 'LABOR_ONLY' && laborCostEstimate > 0 ? (
-                <p className="mt-2 text-xs leading-5 text-muted">
-                  Pode usar o valor base dos servicos como ponto de partida da mao de obra.
-                </p>
-              ) : null}
-            </label>
-
-              <label className="rounded-[22px] border border-border bg-white px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Sinal previsto
-                </p>
-                <input
-                  value={form.downPayment}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      downPayment: event.target.value,
-                    }))
-                  }
-                  placeholder="Ex: 800.00"
                   className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
                 />
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  O sistema calcula e voce pode ajustar se quiser cobrar diferente.
+                </p>
               </label>
+
+              <div className="rounded-[22px] border border-[#e8d7ca] bg-[#fcf5ef] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Base do calculo
+                </p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                  {formatCurrency(costBaseBeforeMargin)}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  {form.budgetType === 'FULL_SERVICE'
+                    ? 'Ingredientes, mao de obra e extras.'
+                    : 'Mao de obra e extras.'}
+                </p>
+              </div>
             </div>
 
-            <label className="rounded-[22px] border border-border bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                Observacoes
-              </p>
-              <textarea
-                value={form.notes}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, notes: event.target.value }))
-                }
-                rows={3}
-                className="mt-2 w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none"
-              />
-            </label>
-
             <div className="rounded-[24px] border border-border bg-white p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Itens do orcamento
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-muted">
-                    Monte a proposta com os servicos do catalogo para ela ficar
-                    mais proxima do pedido real.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addFormItem}
-                  className="rounded-full border border-accent/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent"
-                >
-                  Adicionar item
-                </button>
-              </div>
-
               {form.budgetType === 'FULL_SERVICE' || form.budgetType === 'LABOR_ONLY' ? (
                 <div className="mt-4 grid gap-3 rounded-[22px] border border-[#e8d7ca] bg-[#fcf5ef] p-4 md:grid-cols-2">
                   {form.budgetType === 'FULL_SERVICE' ? (
@@ -923,7 +921,7 @@ export function BudgetsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                      Valor para o cliente
+                      Valor para cobrar
                     </p>
                     <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                       {formatCurrency(currentEstimatedPrice)}
@@ -997,131 +995,6 @@ export function BudgetsPage() {
                   ) : null}
                 </div>
               ) : null}
-
-              <div className="mt-4 space-y-4">
-                {form.items.map((item, index) => (
-                  <div
-                    key={`${index}-${item.serviceId || 'novo'}`}
-                    className="rounded-[22px] border border-border bg-[#fcf8f4] p-4"
-                  >
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_110px_150px_auto]">
-                      <label className="rounded-[18px] border border-border bg-white px-4 py-3 md:col-span-2 xl:col-span-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                          Servico
-                        </p>
-                        <select
-                          value={item.serviceId}
-                          onChange={(event) => {
-                            const nextServiceId = event.target.value;
-                            const selectedService = activeServices.find(
-                              (service) => service.id === nextServiceId,
-                            );
-
-                            setForm((current) => ({
-                              ...current,
-                              items: current.items.map((currentItem, itemIndex) =>
-                                itemIndex === index
-                                  ? {
-                                      ...currentItem,
-                                      serviceId: nextServiceId,
-                                      unitPrice:
-                                        currentItem.unitPrice ||
-                                        selectedService?.basePrice ||
-                                        '',
-                                    }
-                                  : currentItem,
-                              ),
-                            }));
-                          }}
-                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
-                        >
-                          <option value="">Selecione</option>
-                          {activeServices.map((service) => (
-                            <option key={service.id} value={service.id}>
-                              {service.name}
-                            </option>
-                          ))}
-                        </select>
-                        {item.serviceId ? (
-                          <p className="mt-2 text-xs leading-5 text-muted">
-                            {form.budgetType === 'FULL_SERVICE'
-                              ? 'Custo por pessoa: '
-                              : 'Valor base sugerido: '}
-                            {(() => {
-                              const selected = activeServices.find(
-                                (service) => service.id === item.serviceId,
-                              );
-
-                              if (form.budgetType === 'FULL_SERVICE') {
-                                return selected?.estimatedCostPerPerson
-                                  ? formatCurrency(selected.estimatedCostPerPerson)
-                                  : 'nao definido';
-                              }
-
-                              return selected?.basePrice
-                                ? formatCurrency(selected.basePrice)
-                                : 'nao definido';
-                            })()}
-                          </p>
-                        ) : null}
-                      </label>
-
-                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                          Qtd.
-                        </p>
-                        <input
-                          type="number"
-                          min={1}
-                          value={item.quantity}
-                          onChange={(event) =>
-                            updateFormItem(index, 'quantity', event.target.value)
-                          }
-                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
-                        />
-                      </label>
-
-                      <label className="rounded-[18px] border border-border bg-white px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                          Valor unit.
-                        </p>
-                        <input
-                          value={item.unitPrice}
-                          onChange={(event) =>
-                            updateFormItem(index, 'unitPrice', event.target.value)
-                          }
-                          placeholder="Opcional"
-                          className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-                        />
-                      </label>
-
-                      <div className="flex items-end md:col-span-2 xl:col-span-1">
-                        <button
-                          type="button"
-                          onClick={() => removeFormItem(index)}
-                          className="w-full rounded-[18px] border border-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    </div>
-
-                    <label className="mt-4 block rounded-[18px] border border-border bg-white px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Observacao do item
-                      </p>
-                      <input
-                        value={item.notes}
-                        onChange={(event) =>
-                          updateFormItem(index, 'notes', event.target.value)
-                        }
-                        placeholder="Ex: incluir buffet de saladas completo"
-                        className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-                      />
-                    </label>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <button
