@@ -21,6 +21,17 @@ type ApiProduct = {
   };
 };
 
+type ApiProductDetail = ApiProduct & {
+  recipeItems: Array<{
+    id: string;
+    quantityFor50Person: string;
+    service: {
+      id: string;
+      name: string;
+    };
+  }>;
+};
+
 type ProductForm = {
   name: string;
   description: string;
@@ -92,6 +103,8 @@ function formatQuantity(value: string | null, unit: string) {
 export function ProductsPage() {
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedProductDetail, setSelectedProductDetail] =
+    useState<ApiProductDetail | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<ProductForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,11 +190,44 @@ export function ProductsPage() {
 
   useEffect(() => {
     if (!selectedProduct) {
+      setSelectedProductDetail(null);
       return;
     }
 
     setForm(createFormFromProduct(selectedProduct));
   }, [selectedProduct]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSelectedProductDetail() {
+      if (!selectedProductId) {
+        if (isMounted) {
+          setSelectedProductDetail(null);
+        }
+
+        return;
+      }
+
+      try {
+        const detail = await api<ApiProductDetail>(`/products/${selectedProductId}`);
+
+        if (isMounted) {
+          setSelectedProductDetail(detail);
+        }
+      } catch {
+        if (isMounted) {
+          setSelectedProductDetail(null);
+        }
+      }
+    }
+
+    void loadSelectedProductDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProductId]);
 
   async function handleCreateProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -394,6 +440,23 @@ export function ProductsPage() {
                     }))
                   }
                   placeholder="6.50"
+                  className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                />
+              </label>
+
+              <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Custo medio
+                </p>
+                <input
+                  value={form.averageCost}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      averageCost: event.target.value,
+                    }))
+                  }
+                  placeholder="Opcional"
                   className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
                 />
               </label>
@@ -699,6 +762,22 @@ export function ProductsPage() {
 
                 <label className="rounded-[22px] border border-border bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    Custo medio
+                  </p>
+                  <input
+                    value={form.averageCost}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        averageCost: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </label>
+
+                <label className="rounded-[22px] border border-border bg-white px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                     Estoque
                   </p>
                   <input
@@ -750,6 +829,14 @@ export function ProductsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Custo medio
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(selectedProduct.averageCost)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       Estoque atual
                     </p>
                     <p className="mt-2 font-medium text-foreground">
@@ -757,6 +844,30 @@ export function ProductsPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border bg-white px-4 py-4 text-sm text-muted">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Onde esse produto ja entra
+                </p>
+                {selectedProductDetail?.recipeItems?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedProductDetail.recipeItems.map((recipeItem) => (
+                      <span
+                        key={recipeItem.id}
+                        className="rounded-full bg-[#f6ede7] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent"
+                      >
+                        {recipeItem.service.name} · {Number(
+                          recipeItem.quantityFor50Person,
+                        ).toLocaleString('pt-BR')} {selectedProduct.unit}/50
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 leading-6">
+                    Esse ingrediente ainda nao foi ligado a nenhum servico da ficha tecnica.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
