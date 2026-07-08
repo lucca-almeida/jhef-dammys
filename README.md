@@ -59,6 +59,7 @@ JhefDammys/
 
 Hoje o projeto ja tem uma base funcional para:
 
+- login interno com senha
 - dashboard administrativa
 - fluxo de clientes
 - fluxo de servicos
@@ -217,7 +218,13 @@ Crie um arquivo `.env` dentro de `backend` com base nele:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/churrasco_manager?schema=public"
 PORT=3001
 FRONTEND_URL="http://localhost:3000"
+AUTH_SECRET="troque_essa_chave_por_uma_string_bem_segura"
+ADMIN_NAME="Jhef"
+ADMIN_EMAIL="admin@jhefdammys.local"
+ADMIN_PASSWORD="troque-essa-senha"
 ```
+
+Esses dados de admin servem para o primeiro acesso. Quando o backend sobe, ele garante a conta principal com o e-mail e a senha definidos no `.env`.
 
 ### 4. Banco de dados
 
@@ -317,6 +324,7 @@ Mais para frente, a ideia e adicionar:
 
 Com frontend e backend rodando, ja da para acessar:
 
+- `http://localhost:3000/login`
 - `http://localhost:3000/dashboard`
 - `http://localhost:3000/clientes`
 - `http://localhost:3000/servicos`
@@ -330,6 +338,7 @@ Com frontend e backend rodando, ja da para acessar:
 
 ## Proximos passos
 
+- revisar a experiencia do login no celular
 - revisar o fluxo de orcamentos para uso diario
 - refinar a experiencia de envio e acompanhamento do orcamento
 - levar o resultado financeiro tambem para uma visao mais resumida no evento
