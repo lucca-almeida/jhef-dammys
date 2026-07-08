@@ -235,6 +235,19 @@ ADMIN_PASSWORD="troque-essa-senha"
 
 Esses dados de admin servem para o primeiro acesso. Quando o backend sobe, ele garante a conta principal com o e-mail e a senha definidos no `.env`.
 
+### Publicar por link e usar como app
+
+Se a ideia for testar no celular sem publicar em loja, o caminho recomendado hoje e:
+
+- frontend no Vercel
+- backend no Render
+- banco PostgreSQL no Render
+
+Guia pronto:
+
+- [docs/deploy-pwa.md](docs/deploy-pwa.md)
+- [render.yaml](render.yaml)
+
 ### 4. Banco de dados
 
 O projeto usa PostgreSQL local.
@@ -296,6 +309,8 @@ Por padrao a interface sobe em:
 npm.cmd run build
 npm.cmd run start:dev
 npm.cmd run start:prod
+npm.cmd run deploy:build
+npm.cmd run deploy:start
 npm.cmd run prisma:generate
 npm.cmd run prisma:migrate -- --name nome-da-migration
 npm.cmd run test
@@ -344,6 +359,7 @@ Com frontend e backend rodando, ja da para acessar:
 - `http://localhost:3000/produtos`
 - `http://localhost:3000/estoque`
 - `http://localhost:3000/custos`
+- `http://localhost:3001/api/health`
 
 ## Proximos passos
 
@@ -355,6 +371,7 @@ Com frontend e backend rodando, ja da para acessar:
 - melhorar ainda mais a experiencia de produtos e ficha tecnica
 - deixar clientes e servicos tambem mais faceis de editar no dia a dia
 - preparar o sistema para uso interno continuo
+- colocar o PWA no ar por link para teste real no celular
 - adicionar testes automatizados
 
 ## Sobre o GitHub
