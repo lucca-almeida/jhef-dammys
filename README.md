@@ -160,6 +160,7 @@ Ja esta funcionando:
 Ja esta funcionando:
 
 - registro de custos por evento
+- edicao rapida de custo ja lancado
 - categorias rapidas para o operacional
 - historico de gastos com busca
 - visao inicial do peso dos custos na operacao

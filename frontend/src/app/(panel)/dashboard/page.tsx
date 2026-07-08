@@ -304,11 +304,11 @@ export default function DashboardPage() {
   const recentActivity = useMemo(() => {
     const paymentEntries = payments.slice(0, 2).map(
       (payment) =>
-        `${payment.event.client.name} registrou ${formatCurrency(payment.amount)} via ${payment.method.toLowerCase()}.`,
+        `${payment.event.client.name} recebeu ${formatCurrency(payment.amount)} via ${payment.method.toLowerCase()}.`,
     );
     const costEntries = costs.slice(0, 2).map(
       (cost) =>
-        `${cost.event.client.name} teve custo de ${formatCurrency(cost.amount)} em ${cost.category}.`,
+        `${cost.event.client.name} registrou ${formatCurrency(cost.amount)} na categoria ${cost.category}.`,
     );
 
     return [...paymentEntries, ...costEntries].slice(0, 4);

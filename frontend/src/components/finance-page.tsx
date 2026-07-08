@@ -404,7 +404,7 @@ export function FinancePage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
         <DashboardSection
           eyebrow="Novo pagamento"
           title={
@@ -631,7 +631,7 @@ export function FinancePage() {
           title={isLoading ? 'Carregando financeiro...' : `${filteredCards.length} evento(s) monitorados`}
           action="Resumo"
         >
-          <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_auto]">
+          <div className="mb-5 grid gap-4">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar evento
@@ -691,7 +691,7 @@ export function FinancePage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted sm:grid-cols-6 lg:w-[760px] lg:text-right">
+                  <div className="grid w-full max-w-full grid-cols-2 gap-4 text-sm text-muted">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                         Valor fechado

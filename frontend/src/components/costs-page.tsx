@@ -85,6 +85,7 @@ export function CostsPage() {
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [costs, setCosts] = useState<ApiCost[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const [category, setCategory] = useState('ingredientes');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -95,6 +96,16 @@ export function CostsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const preferredEventId = searchParams.get('eventId');
+
+  function resetCostForm(nextEventId?: string) {
+    setSelectedEventId(nextEventId ?? selectedEventId);
+    setEditingCostId(null);
+    setCategory('ingredientes');
+    setDescription('');
+    setAmount('');
+    setSpentAt(new Date().toISOString().slice(0, 10));
+    setNotes('');
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -199,7 +210,17 @@ export function CostsPage() {
     [costs, selectedEventId],
   );
 
-  async function handleCreateCost(event: React.FormEvent<HTMLFormElement>) {
+  function handleEditCost(cost: ApiCost) {
+    setSelectedEventId(cost.eventId);
+    setEditingCostId(cost.id);
+    setCategory(cost.category);
+    setDescription(cost.description);
+    setAmount(cost.amount);
+    setSpentAt(cost.spentAt.slice(0, 10));
+    setNotes(cost.notes ?? '');
+  }
+
+  async function handleSubmitCost(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedEventId || !description.trim() || !amount.trim()) {
@@ -211,25 +232,35 @@ export function CostsPage() {
       setIsSubmitting(true);
       setError(null);
 
-      const createdCost = await api<ApiCost>('/costs', {
-        method: 'POST',
-        body: JSON.stringify({
-          eventId: selectedEventId,
-          category,
-          description,
-          amount,
-          spentAt,
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const costPayload = {
+        eventId: selectedEventId,
+        category,
+        description,
+        amount,
+        spentAt,
+        notes: notes.trim() || undefined,
+      };
 
-      setCosts((current) => [createdCost, ...current]);
-      setDescription('');
-      setAmount('');
-      setNotes('');
-      setCategory('ingredientes');
+      const savedCost = await api<ApiCost>(
+        editingCostId ? `/costs/${editingCostId}` : '/costs',
+        {
+          method: editingCostId ? 'PATCH' : 'POST',
+          body: JSON.stringify(costPayload),
+        },
+      );
+
+      setCosts((current) =>
+        editingCostId
+          ? current.map((cost) => (cost.id === editingCostId ? savedCost : cost))
+          : [savedCost, ...current],
+      );
+      resetCostForm(selectedEventId);
     } catch (submitError) {
-      setError('Nao foi possivel registrar esse custo agora.');
+      setError(
+        editingCostId
+          ? 'Nao foi possivel atualizar esse custo agora.'
+          : 'Nao foi possivel registrar esse custo agora.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -263,11 +294,17 @@ export function CostsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
         <DashboardSection
-          eyebrow="Novo custo"
-          title={selectedEvent ? selectedEvent.title : 'Escolha um evento'}
+          eyebrow={editingCostId ? 'Editar custo' : 'Novo custo'}
+          title={
+            editingCostId
+              ? 'Ajustar gasto lancado'
+              : selectedEvent
+                ? selectedEvent.title
+                : 'Escolha um evento'
+          }
           action="Operacao"
         >
-          <form className="space-y-4" onSubmit={handleCreateCost}>
+          <form className="space-y-4" onSubmit={handleSubmitCost}>
             <label className="block rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Evento
@@ -417,8 +454,21 @@ export function CostsPage() {
               disabled={isSubmitting}
               className="w-full rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSubmitting ? 'Salvando custo...' : 'Registrar custo'}
+              {isSubmitting
+                ? 'Salvando custo...'
+                : editingCostId
+                  ? 'Salvar alteracoes'
+                  : 'Registrar custo'}
             </button>
+            {editingCostId ? (
+              <button
+                type="button"
+                onClick={() => resetCostForm(selectedEventId)}
+                className="w-full rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent/40"
+              >
+                Cancelar edicao
+              </button>
+            ) : null}
           </form>
         </DashboardSection>
 
@@ -486,13 +536,22 @@ export function CostsPage() {
                     ) : null}
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                      Valor
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">
-                      {formatCurrency(cost.amount)}
-                    </p>
+                  <div className="flex flex-wrap items-center gap-3 text-right">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Valor
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">
+                        {formatCurrency(cost.amount)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEditCost(cost)}
+                      className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                    >
+                      Editar
+                    </button>
                   </div>
                 </div>
               </article>
