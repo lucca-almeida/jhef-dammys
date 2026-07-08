@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description: "Sistema interno para agenda, orcamentos, custos e lucro.",
   manifest: "/manifest.webmanifest",
   applicationName: "JhefDammys",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

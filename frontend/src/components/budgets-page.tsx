@@ -381,6 +381,22 @@ export function BudgetsPage() {
     }, 0);
   }, [activeServices, form.budgetType, form.guestCount, form.items]);
 
+  const laborCostEstimate = useMemo(() => {
+    return form.items.reduce((sum, item) => {
+      if (!item.serviceId) {
+        return sum;
+      }
+
+      const service = activeServices.find(
+        (serviceOption) => serviceOption.id === item.serviceId,
+      );
+      const quantity = Number(item.quantity) || 1;
+      const unitValue = Number(item.unitPrice || service?.basePrice || 0);
+
+      return sum + unitValue * quantity;
+    }, 0);
+  }, [activeServices, form.items]);
+
   const ingredientBreakdown = useMemo<IngredientBreakdownItem[]>(() => {
     const guestCount = Number(form.guestCount);
 
@@ -453,34 +469,23 @@ export function BudgetsPage() {
   const currentEstimatedPrice = Number(form.estimatedPrice || 0);
   const operationalExtraValue = Number(operationalExtra || 0);
   const desiredMarginValue = Number(desiredMarginPercent || 0);
-  const suggestedQuoteValue = useMemo(() => {
-    if (form.budgetType !== 'FULL_SERVICE') {
-      return 0;
-    }
-
-    const subtotal = ingredientCostEstimate + operationalExtraValue;
-
-    if (subtotal <= 0) {
-      return 0;
-    }
-
-    return subtotal * (1 + desiredMarginValue / 100);
-  }, [
-    desiredMarginValue,
-    form.budgetType,
-    ingredientCostEstimate,
-    operationalExtraValue,
-  ]);
-  const estimatedMargin =
+  const costBaseBeforeMargin =
     form.budgetType === 'FULL_SERVICE'
-      ? currentEstimatedPrice - ingredientCostEstimate - operationalExtraValue
-      : 0;
+      ? ingredientCostEstimate + laborCostEstimate + operationalExtraValue
+      : laborCostEstimate + operationalExtraValue;
+  const suggestedQuoteValue = useMemo(() => {
+    if (costBaseBeforeMargin <= 0) {
+      return 0;
+    }
+
+    return costBaseBeforeMargin * (1 + desiredMarginValue / 100);
+  }, [
+    costBaseBeforeMargin,
+    desiredMarginValue,
+  ]);
+  const estimatedMargin = currentEstimatedPrice - costBaseBeforeMargin;
 
   useEffect(() => {
-    if (form.budgetType !== 'FULL_SERVICE') {
-      return;
-    }
-
     if (!suggestedQuoteValue) {
       return;
     }
@@ -831,7 +836,12 @@ export function BudgetsPage() {
               />
               {form.budgetType === 'FULL_SERVICE' && ingredientCostEstimate > 0 ? (
                 <p className="mt-2 text-xs leading-5 text-muted">
-                  Preenchido com base no custo estimado atual dos ingredientes.
+                  Preenchido com base no custo atual da composicao.
+                </p>
+              ) : null}
+              {form.budgetType === 'LABOR_ONLY' && laborCostEstimate > 0 ? (
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Pode usar o valor base dos servicos como ponto de partida da mao de obra.
                 </p>
               ) : null}
             </label>
@@ -889,14 +899,24 @@ export function BudgetsPage() {
                 </button>
               </div>
 
-              {form.budgetType === 'FULL_SERVICE' ? (
+              {form.budgetType === 'FULL_SERVICE' || form.budgetType === 'LABOR_ONLY' ? (
                 <div className="mt-4 grid gap-3 rounded-[22px] border border-[#e8d7ca] bg-[#fcf5ef] p-4 md:grid-cols-2">
+                  {form.budgetType === 'FULL_SERVICE' ? (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        Custo estimado dos ingredientes
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                        {formatCurrency(ingredientCostEstimate)}
+                      </p>
+                    </div>
+                  ) : null}
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                      Custo estimado dos ingredientes
+                      Mao de obra base
                     </p>
                     <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                      {formatCurrency(ingredientCostEstimate)}
+                      {formatCurrency(laborCostEstimate)}
                     </p>
                   </div>
                   <div>
@@ -905,6 +925,14 @@ export function BudgetsPage() {
                     </p>
                     <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                       {formatCurrency(operationalExtraValue)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Base antes da margem
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {formatCurrency(costBaseBeforeMargin)}
                     </p>
                   </div>
                   <div>
@@ -938,7 +966,7 @@ export function BudgetsPage() {
                 </div>
               ) : null}
 
-              {form.budgetType === 'FULL_SERVICE' ? (
+              {form.budgetType === 'FULL_SERVICE' || form.budgetType === 'LABOR_ONLY' ? (
                 <div className="mt-3 grid gap-4 md:grid-cols-2">
                   <label className="rounded-[22px] border border-[#ead9cb] bg-white px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -966,25 +994,27 @@ export function BudgetsPage() {
                       className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
                     />
                     <p className="mt-2 text-xs leading-5 text-muted">
-                      A sugestao usa `ingredientes + extra operacional` e aplica essa margem por cima.
+                      A sugestao usa a base do custo atual e aplica essa margem por cima.
                     </p>
                   </label>
                 </div>
               ) : null}
 
-              {form.budgetType === 'FULL_SERVICE' ? (
+              {form.budgetType === 'FULL_SERVICE' || form.budgetType === 'LABOR_ONLY' ? (
                 <div className="mt-3 rounded-[22px] border border-[#ead9cb] bg-white px-4 py-4 text-sm leading-6 text-muted">
-                  A conta usa `quantidade de pessoas x custo por pessoa` de cada
-                  servico que ja tenha ficha tecnica montada.
-                  {servicesWithoutRecipeCount > 0 ? (
+                  {form.budgetType === 'FULL_SERVICE'
+                    ? 'A conta soma ingredientes + mao de obra base + extra operacional e depois aplica a margem desejada.'
+                    : 'Na mao de obra, a conta usa o valor base dos servicos escolhidos + extra operacional e depois aplica a margem desejada.'}
+                  {form.budgetType === 'FULL_SERVICE' &&
+                  servicesWithoutRecipeCount > 0 ? (
                     <p className="mt-2 text-[#8a4c30]">
                       {servicesWithoutRecipeCount} item(ns) ainda sem ficha tecnica,
-                      entao esse custo pode estar incompleto.
+                      entao o custo dos ingredientes pode estar incompleto.
                     </p>
                   ) : null}
-                  {ingredientCostEstimate > 0 && estimatedMargin < 0 ? (
+                  {costBaseBeforeMargin > 0 && estimatedMargin < 0 ? (
                     <p className="mt-2 text-[#8f4242]">
-                      O valor estimado esta abaixo do custo dos ingredientes somado ao operacional informado.
+                      O valor estimado esta abaixo da base de custo atual informada.
                     </p>
                   ) : null}
                 </div>
@@ -1074,9 +1104,28 @@ export function BudgetsPage() {
                         </p>
                         <select
                           value={item.serviceId}
-                          onChange={(event) =>
-                            updateFormItem(index, 'serviceId', event.target.value)
-                          }
+                          onChange={(event) => {
+                            const nextServiceId = event.target.value;
+                            const selectedService = activeServices.find(
+                              (service) => service.id === nextServiceId,
+                            );
+
+                            setForm((current) => ({
+                              ...current,
+                              items: current.items.map((currentItem, itemIndex) =>
+                                itemIndex === index
+                                  ? {
+                                      ...currentItem,
+                                      serviceId: nextServiceId,
+                                      unitPrice:
+                                        currentItem.unitPrice ||
+                                        selectedService?.basePrice ||
+                                        '',
+                                    }
+                                  : currentItem,
+                              ),
+                            }));
+                          }}
                           className="mt-2 w-full border-0 bg-transparent text-sm text-foreground outline-none"
                         >
                           <option value="">Selecione</option>
@@ -1088,14 +1137,22 @@ export function BudgetsPage() {
                         </select>
                         {item.serviceId ? (
                           <p className="mt-2 text-xs leading-5 text-muted">
-                            Custo por pessoa:{' '}
+                            {form.budgetType === 'FULL_SERVICE'
+                              ? 'Custo por pessoa: '
+                              : 'Valor base sugerido: '}
                             {(() => {
                               const selected = activeServices.find(
                                 (service) => service.id === item.serviceId,
                               );
 
-                              return selected?.estimatedCostPerPerson
-                                ? formatCurrency(selected.estimatedCostPerPerson)
+                              if (form.budgetType === 'FULL_SERVICE') {
+                                return selected?.estimatedCostPerPerson
+                                  ? formatCurrency(selected.estimatedCostPerPerson)
+                                  : 'nao definido';
+                              }
+
+                              return selected?.basePrice
+                                ? formatCurrency(selected.basePrice)
                                 : 'nao definido';
                             })()}
                           </p>

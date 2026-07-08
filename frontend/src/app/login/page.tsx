@@ -58,59 +58,12 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7efe7_0%,#efe4d9_48%,#eadccf_100%)] px-4 py-[calc(20px+env(safe-area-inset-top))] pb-[calc(20px+env(safe-area-inset-bottom))] text-foreground">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-w-5xl items-center justify-center">
-        <div className="grid w-full max-w-4xl gap-6 rounded-[32px] border border-border bg-panel p-6 shadow-[0_24px_80px_rgba(78,52,37,0.12)] lg:grid-cols-[1fr_0.9fr] lg:p-8">
-          <section className="rounded-[28px] bg-[#2f241f] p-6 text-[#f7ede6]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d8b6a5]">
+        <div className="w-full max-w-xl rounded-[32px] border border-border bg-panel p-6 shadow-[0_24px_80px_rgba(78,52,37,0.12)] lg:p-8">
+          <section className="rounded-[28px] border border-border bg-white px-5 py-6 lg:px-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
               JhefDammys
             </p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight">
-              Painel interno do negocio
-            </h1>
-            <p className="mt-4 text-sm leading-7 text-[#d7c5bb]">
-              Entre com seu acesso para acompanhar agenda, orcamentos, custos,
-              financeiro e tudo que importa no dia a dia.
-            </p>
-
-            <div className="mt-8 space-y-3">
-              {[ 
-                'Visual rapido da agenda e dos eventos ativos.',
-                'Orcamentos mais praticos e com custo estimado.',
-                'Financeiro e custos protegidos so para quem administra.',
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-[20px] border border-white/10 bg-white/6 px-4 py-3 text-sm leading-6 text-[#f7ede6]"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            {!isStandalone ? (
-              <div className="mt-5 rounded-[20px] border border-white/10 bg-[#4a362e] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f1c7b2]">
-                  Dica para celular
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[#f7ede6]">
-                  Se quiser deixar mais pratico para ele usar no dia a dia,
-                  depois da primeira abertura voce pode adicionar este sistema na
-                  tela inicial do aparelho.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-5 rounded-[20px] border border-white/10 bg-[#4a362e] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f1c7b2]">
-                  Modo app ativo
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[#f7ede6]">
-                  Este acesso ja esta abrindo com cara de aplicativo.
-                </p>
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-[28px] border border-border bg-white px-5 py-6 lg:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               Acesso seguro
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">
@@ -119,6 +72,17 @@ export default function LoginPage() {
             <p className="mt-3 text-sm leading-6 text-muted">
               Use o e-mail e a senha configurados para o administrador.
             </p>
+
+            {!isStandalone ? (
+              <div className="mt-4 rounded-[20px] border border-border bg-panel px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                  Dica para celular
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Depois da primeira abertura, voce pode adicionar esse sistema na tela inicial do aparelho.
+                </p>
+              </div>
+            ) : null}
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               <label className="block rounded-[22px] border border-border bg-panel px-4 py-3">

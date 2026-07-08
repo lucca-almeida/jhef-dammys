@@ -318,9 +318,8 @@ export default function DashboardPage() {
     <>
       <PageHeader
         eyebrow="Dashboard operacional"
-        title="Visao real do negocio em um unico painel"
-        description="Um painel de entrada para ele bater o olho no que vai acontecer, no que falta receber e em como os eventos estao se comportando financeiramente."
-        actions={['Novo cliente', 'Novo orcamento', 'Novo evento', 'Lancar custo']}
+        title="Resumo rapido do negocio"
+        description="Um painel simples para bater o olho no que vai acontecer, no que falta receber e no que pede atencao no dia a dia."
       />
 
       {error ? (
@@ -362,7 +361,6 @@ export default function DashboardPage() {
         <DashboardSection
           eyebrow="Agenda do dia"
           title="Compromissos e eventos de hoje"
-          action="Abrir agenda"
         >
           <div className="space-y-4">
             {todayAgenda.map((item) => (
@@ -430,7 +428,6 @@ export default function DashboardPage() {
         <DashboardSection
           eyebrow="Proximos eventos"
           title="Agenda prioritaria"
-          action="Ver eventos"
         >
           <div className="space-y-4">
             {nextEvents.map((event) => (
@@ -471,7 +468,6 @@ export default function DashboardPage() {
         <DashboardSection
           eyebrow="Orcamentos pendentes"
           title="Negociacoes que pedem retorno"
-          action="Abrir funil"
         >
           <div className="space-y-4">
             {pendingBudgets.map((budget) => (
@@ -534,7 +530,6 @@ export default function DashboardPage() {
         <DashboardSection
           eyebrow="Estoque"
           title="Itens que pedem atencao"
-          action="Ver produtos"
         >
           <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
             {stockAlerts.map((alert) => (
