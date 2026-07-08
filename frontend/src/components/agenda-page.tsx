@@ -288,11 +288,11 @@ export function AgendaPage() {
           title={getMonthLabel(currentMonth)}
           action="Agenda real"
         >
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={goToPreviousMonth}
-              className="rounded-full border border-border px-4 py-2 text-sm text-foreground transition hover:border-accent/40"
+              className="w-full rounded-full border border-border px-4 py-3 text-sm text-foreground transition hover:border-accent/40 sm:w-auto"
             >
               Mes anterior
             </button>
@@ -304,13 +304,13 @@ export function AgendaPage() {
             <button
               type="button"
               onClick={goToNextMonth}
-              className="rounded-full border border-border px-4 py-2 text-sm text-foreground transition hover:border-accent/40"
+              className="w-full rounded-full border border-border px-4 py-3 text-sm text-foreground transition hover:border-accent/40 sm:w-auto"
             >
               Proximo mes
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="hidden grid-cols-7 gap-2 md:grid">
             {weekDays.map((day) => (
               <div
                 key={day}
@@ -362,6 +362,59 @@ export function AgendaPage() {
                       </div>
                     ) : null}
                   </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {calendarDays.map((day) => {
+              const isSelected = isSameDay(day.date, selectedDate);
+
+              return (
+                <button
+                  key={day.key}
+                  type="button"
+                  onClick={() => setSelectedDate(day.date)}
+                  className={`w-full rounded-[24px] border px-4 py-4 text-left transition ${
+                    isSelected
+                      ? 'border-accent bg-[#fff4eb]'
+                      : 'border-border bg-white hover:border-accent/30'
+                  } ${day.isCurrentMonth ? '' : 'opacity-50'}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                        {formatDate(day.date)}
+                      </p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">
+                        {day.dayNumber}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#f2e7dd] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      {day.events.length} evento(s)
+                    </span>
+                  </div>
+
+                  {day.events.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {day.events.slice(0, 2).map((event) => (
+                        <div
+                          key={event.id}
+                          className={`rounded-2xl border px-3 py-2 text-xs leading-5 ${getStatusTone(
+                            event.status,
+                          )}`}
+                        >
+                          <p className="font-semibold">{event.client.name}</p>
+                          <p className="opacity-80">{event.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm leading-6 text-muted">
+                      Nenhum evento neste dia.
+                    </p>
+                  )}
                 </button>
               );
             })}
@@ -453,10 +506,10 @@ export function AgendaPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Link
                       href={`/eventos?eventId=${event.id}`}
-                      className="rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:opacity-95"
+                      className="w-full rounded-full border border-accent bg-accent px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:opacity-95 sm:w-auto"
                     >
                       Abrir evento
                     </Link>

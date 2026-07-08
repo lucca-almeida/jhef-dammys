@@ -431,7 +431,7 @@ export function ServicesPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Salvando...' : 'Salvar servico'}
             </button>
@@ -464,7 +464,7 @@ export function ServicesPage() {
           title={isLoading ? 'Carregando catalogo...' : `${services.length} item(ns) no catalogo`}
           action="Atualizado pela API"
         >
-          <div className="mb-5 flex flex-col gap-4 lg:flex-row">
+          <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Buscar servico
@@ -480,7 +480,7 @@ export function ServicesPage() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
+              className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95"
             >
               Limpar
             </button>
@@ -566,7 +566,7 @@ export function ServicesPage() {
                             event.stopPropagation();
                             void handleToggleService(service);
                           }}
-                          className="mt-2 rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40"
+                          className="mt-2 w-full rounded-full border border-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent/40 sm:w-auto"
                         >
                           {service.isActive ? 'Desativar' : 'Ativar'}
                         </button>
@@ -657,7 +657,7 @@ export function ServicesPage() {
                   <button
                     type="submit"
                     disabled={isUpdating}
-                    className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isUpdating ? 'Salvando...' : 'Salvar dados do servico'}
                   </button>
@@ -666,7 +666,7 @@ export function ServicesPage() {
                     onClick={() =>
                       selectedService && setForm(createFormFromService(selectedService))
                     }
-                    className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                    className="min-h-[52px] rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
                   >
                     Restaurar dados
                   </button>
@@ -698,7 +698,7 @@ export function ServicesPage() {
 
                 <div className="rounded-[22px] border border-border bg-white px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Projeção para 100 pessoas
+                    Projecao para 100 pessoas
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                     {formatCurrency(recipePreview.cost100)}
@@ -803,7 +803,7 @@ export function ServicesPage() {
 
                     <label className="mt-4 block rounded-[18px] border border-border bg-[#fcf8f4] px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Observação
+                        Observacao
                       </p>
                       <input
                         value={item.notes}
@@ -822,7 +822,7 @@ export function ServicesPage() {
                 <button
                   type="button"
                   onClick={addRecipeItem}
-                  className="rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
+                  className="min-h-[52px] rounded-[22px] border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40"
                 >
                   Adicionar ingrediente
                 </button>
@@ -831,7 +831,7 @@ export function ServicesPage() {
                   type="button"
                   onClick={() => void handleSaveRecipe()}
                   disabled={isSavingRecipe}
-                  className="rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="min-h-[52px] rounded-[22px] border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSavingRecipe ? 'Salvando...' : 'Salvar ficha tecnica'}
                 </button>

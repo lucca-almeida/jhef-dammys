@@ -64,6 +64,10 @@ Hoje o projeto ja tem uma base funcional para:
 - navegacao mobile mais enxuta para uso no celular
 - login ajustado para abrir melhor em tela pequena
 - telas de clientes, orcamentos, eventos, financeiro, custos e produtos mais confortaveis no celular
+- servicos, agenda e telas-base alinhados com o mesmo padrao mobile
+- ajuste de configuracao no frontend para manter os aliases funcionando melhor no build
+- alias do frontend reforcado tambem no Next para evitar quebra entre ambientes
+- configuracao do Next mais presa a raiz do frontend para evitar confusao de workspace
 - dashboard administrativa
 - fluxo de clientes
 - fluxo de servicos

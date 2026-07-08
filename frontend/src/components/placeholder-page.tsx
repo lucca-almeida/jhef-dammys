@@ -34,7 +34,7 @@ export function PlaceholderPage({
           {bullets.map((bullet) => (
             <div
               key={bullet}
-              className="rounded-[24px] border border-border bg-white px-5 py-5 text-sm leading-7 text-muted"
+              className="rounded-[24px] border border-border bg-white px-4 py-4 text-sm leading-6 text-muted sm:px-5 sm:py-5 sm:leading-7"
             >
               {bullet}
             </div>
