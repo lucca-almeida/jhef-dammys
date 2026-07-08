@@ -554,7 +554,6 @@ export function EventsPage() {
         eyebrow="Eventos"
         title="Operacao dos eventos fechados"
         description="Aqui a proposta comeca a virar entrega real: o orcamento aprovado entra na agenda, ganha status e passa a concentrar tudo que vai acontecer no evento."
-        actions={['Ver agenda', 'Filtrar confirmados', 'Acompanhar proximos']}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -578,7 +577,6 @@ export function EventsPage() {
         <DashboardSection
           eyebrow="Orcamentos prontos"
           title={`${budgetsReady.length} proposta(s) esperando virar evento`}
-          action="Fluxo comercial"
         >
           <div className="space-y-4">
             {budgetsReady.slice(0, 5).map((budget) => (
@@ -650,7 +648,6 @@ export function EventsPage() {
         <DashboardSection
           eyebrow="Eventos ativos"
           title={isLoading ? 'Carregando agenda...' : `${filteredEvents.length} evento(s) na base`}
-          action="Atualizado pela API"
         >
           <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="rounded-[22px] border border-border bg-white px-4 py-3">
@@ -833,7 +830,6 @@ export function EventsPage() {
         <DashboardSection
           eyebrow="Painel do evento"
           title={selectedEventDetails.title}
-          action="Visao completa"
         >
           {isLoadingDetails ? (
             <div className="rounded-[24px] border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted">

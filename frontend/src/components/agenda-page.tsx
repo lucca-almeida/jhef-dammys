@@ -262,7 +262,6 @@ export function AgendaPage() {
         eyebrow="Agenda"
         title="Controle de datas e compromissos"
         description="Essa tela precisa virar o lugar onde ele bate o olho para ver datas ocupadas, confirmar disponibilidade e nao se perder no mes."
-        actions={['Mes atual', 'Ver confirmados', 'Datas livres']}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -286,7 +285,6 @@ export function AgendaPage() {
         <DashboardSection
           eyebrow="Calendario"
           title={getMonthLabel(currentMonth)}
-          action="Agenda real"
         >
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
@@ -424,7 +422,6 @@ export function AgendaPage() {
         <DashboardSection
           eyebrow="Dia selecionado"
           title={formatDate(selectedDate)}
-          action="Detalhes"
         >
           {error ? (
             <div className="rounded-[24px] border border-[#e4b7a0] bg-[#fff1e8] px-5 py-4 text-sm text-[#8a4c30]">

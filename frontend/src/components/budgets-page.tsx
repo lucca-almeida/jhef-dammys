@@ -695,36 +695,14 @@ export function BudgetsPage() {
     <>
       <PageHeader
         eyebrow="Orcamentos"
-        title="Funil de negociacao e propostas"
-        description="Aqui vamos registrar pedidos, montar propostas iniciais e acompanhar quem ainda precisa de retorno antes de virar evento."
-        actions={['Novo orcamento', 'Ver aprovados', 'Exportar lista']}
+        title="Gerar orcamento"
+        description="Escolha o cliente, a quantidade de pessoas e o servico. O sistema sugere um valor e voce ajusta se precisar."
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {summary.map((item) => (
-          <article
-            key={item.label}
-            className="rounded-[24px] border border-border bg-panel px-5 py-5 shadow-[0_18px_40px_rgba(102,66,46,0.08)]"
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
-              {item.label}
-            </p>
-            <p className="mt-4 text-3xl font-semibold tracking-tight">
-              {item.value}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-muted">{item.note}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-6">
         <DashboardSection
           eyebrow={isEditingBudgetId ? 'Editar orcamento' : 'Novo orcamento'}
-          title={
-            isEditingBudgetId
-              ? 'Ajuste a proposta sem montar tudo de novo'
-              : 'Cadastro inicial da proposta'
-          }
+          title={isEditingBudgetId ? 'Ajustar proposta' : 'Montar proposta'}
         >
           <form className="grid gap-4" onSubmit={handleSubmitBudget}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -1020,77 +998,6 @@ export function BudgetsPage() {
                 </div>
               ) : null}
 
-              {form.budgetType === 'FULL_SERVICE' && ingredientBreakdown.length > 0 ? (
-                <div className="mt-4 rounded-[22px] border border-border bg-white p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                        Composicao do custo
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-muted">
-                        Esse bloco ajuda ele a entender quanto de cada ingrediente entra na conta antes de mandar o valor.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextValue = suggestedQuoteValue.toFixed(2);
-                        setForm((current) => ({
-                          ...current,
-                          estimatedPrice: nextValue,
-                        }));
-                        setLastAutoEstimate(nextValue);
-                      }}
-                      className="w-full rounded-full border border-accent/30 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:border-accent sm:w-auto"
-                    >
-                      Usar sugestao no valor
-                    </button>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {ingredientBreakdown.map((ingredient) => (
-                      <div
-                        key={ingredient.productId}
-                        className="grid gap-3 rounded-[18px] border border-border px-4 py-3 text-sm text-muted md:grid-cols-2 xl:grid-cols-4"
-                      >
-                        <div>
-                          <p className="font-medium text-foreground">{ingredient.name}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted">
-                            {formatCurrency(ingredient.currentCost)} por {ingredient.unit}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                            Quantidade total
-                          </p>
-                          <p className="mt-2 font-medium text-foreground">
-                            {ingredient.totalQuantity.toFixed(2)} {ingredient.unit}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                            Custo total
-                          </p>
-                          <p className="mt-2 font-medium text-foreground">
-                            {formatCurrency(ingredient.totalCost)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                            Peso no orcamento
-                          </p>
-                          <p className="mt-2 font-medium text-foreground">
-                            {ingredientCostEstimate > 0
-                              ? `${((ingredient.totalCost / ingredientCostEstimate) * 100).toFixed(1)}%`
-                              : '0%'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
               <div className="mt-4 space-y-4">
                 {form.items.map((item, index) => (
                   <div
@@ -1239,19 +1146,6 @@ export function BudgetsPage() {
             ) : null}
           </form>
         </DashboardSection>
-
-        <DashboardSection eyebrow="Regras importantes" title="Como pensar o orcamento">
-          <div className="space-y-3">
-            {serviceNotes.map((note) => (
-              <div
-                key={note}
-                className="rounded-2xl border border-border bg-white px-4 py-4 text-sm leading-6 text-muted"
-              >
-                {note}
-              </div>
-            ))}
-          </div>
-        </DashboardSection>
       </div>
 
       {error ? (
@@ -1267,7 +1161,6 @@ export function BudgetsPage() {
             ? 'Carregando propostas...'
             : `${filteredBudgets.length} proposta(s) na base`
         }
-        action="Atualizado pela API"
       >
         <div className="mb-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label className="rounded-[22px] border border-border bg-white px-4 py-3">

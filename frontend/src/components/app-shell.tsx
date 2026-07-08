@@ -21,7 +21,7 @@ const menuItems = [
 const mobileItems = [
   { href: '/dashboard', label: 'Painel' },
   { href: '/agenda', label: 'Agenda' },
-  { href: '/orcamentos', label: 'Orcamentos' },
+  { href: '/orcamentos', label: 'Orcar' },
   { href: '/eventos', label: 'Eventos' },
 ];
 
@@ -158,7 +158,7 @@ export function AppShell({ children }: AppShellProps) {
             <section className="space-y-4 lg:space-y-6">{children}</section>
           </div>
 
-          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-panel/95 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_40px_rgba(102,66,46,0.12)] backdrop-blur lg:hidden">
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-panel/95 px-3 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_40px_rgba(102,66,46,0.12)] backdrop-blur lg:hidden">
             <div className="mx-auto grid max-w-3xl grid-cols-4 gap-2">
               {mobileItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -167,7 +167,7 @@ export function AppShell({ children }: AppShellProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`rounded-2xl px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.08em] transition ${
+                    className={`rounded-xl px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.06em] transition ${
                       isActive
                         ? 'bg-[#2f241f] text-[#f7ede6]'
                         : 'bg-panel-strong text-muted'
